@@ -15,8 +15,9 @@ import {
   type PerspectiveCamera,
   type Points,
   type PointsMaterial,
+  type ShaderMaterial,
 } from 'three';
-import { scrollState } from '@/lib/scroll';
+import { narrowScale, scrollState, stageRead } from '@/lib/scroll';
 import { clamp, clamp01, damp, easeOutBack, easeOutCubic, envelope, lerp, norm, wrap } from '@/lib/math';
 import { COACH } from '@/lib/content';
 import { dotTexture, messageTexture } from '@/lib/textures';
@@ -29,24 +30,32 @@ import { Glow } from '../parts/Glow';
  * the left; steps and water come in from above and below.
  */
 const STREAMS: Array<{ from: [number, number, number]; speed: number; color: string }> = [
-  { from: [3.6, 1.5, -1.2], speed: 0.22, color: '#22C55E' },
-  { from: [-3.8, 1.1, -0.8], speed: 0.27, color: '#38BDF8' },
-  { from: [3.4, -1.6, -0.6], speed: 0.19, color: '#FBBF24' },
-  { from: [-3.5, -1.4, -1.4], speed: 0.24, color: '#A78BFA' },
-  { from: [0.4, 3.2, -1.6], speed: 0.31, color: '#F472B6' },
-  { from: [-0.6, -3.0, -1.0], speed: 0.17, color: '#0EA5E9' },
+  { from: [2.5, 1.1, -1.2], speed: 0.22, color: '#22C55E' },
+  { from: [-2.6, 0.8, -0.8], speed: 0.27, color: '#38BDF8' },
+  { from: [2.3, -1.2, -0.6], speed: 0.19, color: '#FBBF24' },
+  { from: [-2.4, -1.0, -1.4], speed: 0.24, color: '#A78BFA' },
+  { from: [0.3, 2.2, -1.6], speed: 0.31, color: '#F472B6' },
+  { from: [-0.4, -2.1, -1.0], speed: 0.17, color: '#0EA5E9' },
 ];
 
 const MOTES_PER_STREAM = 22;
 const CURVE_SEGMENTS = 40;
 
-/** Message slots, spread wide enough to clear the centred copy above them. */
+/**
+ * Message slots. This is the one section whose copy is centred rather than in
+ * a column, so the messages have to live in the margins beside it — far enough
+ * out to clear the text, close enough in to stay on screen at 16:9.
+ */
 const MESSAGE_SLOTS: Array<[number, number, number]> = [
-  [-2.1, 1.32, 0.5],
-  [2.15, 0.96, 0.35],
-  [-2.2, -1.05, 0.45],
-  [2.0, -1.45, 0.3],
+  [-2.35, 1.28, 0.5],
+  [2.4, 0.9, 0.35],
+  [-2.45, -0.98, 0.45],
+  [2.25, -1.38, 0.3],
 ];
+
+/** Keep in step with the message plane's geometry below. */
+const MESSAGE_WIDTH = 1.62;
+const MESSAGE_HALF_WIDTH = MESSAGE_WIDTH / 2;
 
 const ORB_VERTEX = /* glsl */ `
   uniform float uTime;
@@ -90,12 +99,20 @@ const ORB_FRAGMENT = /* glsl */ `
 
   void main() {
     float facing = clamp(dot(normalize(vNormal), normalize(vView)), 0.0, 1.0);
-    float fresnel = pow(1.0 - facing, 2.2);
+
+    // Exponent 1.5, not the usual 4-5. A tight fresnel puts all the light in
+    // the outermost few percent of the silhouette, which on a sphere this large
+    // is a ten-pixel ring nobody notices. A soft falloff plus a standing body
+    // term is what makes it read as something lit from inside.
+    float fresnel = pow(1.0 - facing, 1.5);
 
     vec3 base = mix(uColorA, uColorB, clamp(vNoise * 0.5 + 0.5, 0.0, 1.0));
-    vec3 color = base * (0.3 + fresnel * 1.9) + vec3(fresnel) * 0.4 * uGlow;
+    vec3 color = base * (0.4 + fresnel * 1.9) + vec3(fresnel) * 0.45 * uGlow;
 
-    gl_FragColor = vec4(color, clamp(uOpacity * (0.22 + fresnel * 1.15), 0.0, 1.0));
+    // The body term stays low: additive blending over a sphere this large turns
+    // anything higher into a lit balloon that swallows the copy in front of it.
+    // Nearly all the light belongs in the rim.
+    gl_FragColor = vec4(color, clamp(uOpacity * (0.09 + fresnel * 0.8), 0.0, 1.0));
 
     #include <colorspace_fragment>
   }
@@ -111,7 +128,27 @@ const ORB_FRAGMENT = /* glsl */ `
  */
 export function CoachOrb() {
   const group = useRef<Group>(null);
+  /**
+   * The insights live outside the orb's group.
+   *
+   * The orb is pushed back and scaled down so the centred copy can sit on top
+   * of it; applying the same transform to the messages would shrink them and
+   * drag them in behind the text, which is the opposite of what they need.
+   */
+  const messageGroup = useRef<Group>(null);
   const core = useRef<Mesh>(null);
+  /**
+   * The orb's uniforms are read back off the material, not from the object
+   * passed in as a prop.
+   *
+   * R3F does not necessarily hand the material the very object given to
+   * `uniforms=` — it may merge it into the material's own, which leaves you
+   * mutating a detached copy while the shader keeps rendering its initial
+   * values. That failure is silent and looks exactly like a shader bug: here it
+   * pinned `uOpacity` at 0, so the orb was drawing every frame, perfectly
+   * invisible. Going through the material is immune either way.
+   */
+  const orbMaterial = useRef<ShaderMaterial>(null);
   const shell = useRef<Mesh>(null);
   const nodes = useRef<Points>(null);
   const motes = useRef<Points>(null);
@@ -227,34 +264,55 @@ export function CoachOrb() {
     if (!root) return;
 
     const t = scrollState.t;
-    const alive = envelope(t, 4.5, 4.95, 5.5, 6.15);
-    root.visible = alive > 0.002;
-    if (!root.visible) return;
+    const read = stageRead('coach');
+    const alive = envelope(t, 4.3, 4.95, 5.45, 5.95);
+    const onStage = alive > 0.002;
+    root.visible = onStage;
+    // The insights need clear margins either side of the copy. A phone has no
+    // such margins — the column is the screen — so rather than cram them behind
+    // the text they sit this one out. The copy says the same thing.
+    const showMessages = onStage && !scrollState.narrow;
+    if (messageGroup.current) messageGroup.current.visible = showMessages;
+    if (!onStage) return;
 
     const time = state.clock.elapsedTime;
     const reduced = scrollState.reducedMotion;
 
-    const form = easeOutCubic(norm(t, 4.55, 5.05));
-    const leave = easeOutCubic(norm(t, 5.5, 6.15));
+    const form = easeOutCubic(norm(t, 4.35, 4.95));
+    const leave = easeOutCubic(norm(t, 5.45, 5.95));
 
     root.position.y = reduced ? 0 : Math.sin(time * 0.4) * 0.06;
-    root.scale.setScalar(lerp(0.15, 1, easeOutBack(form)) * lerp(1, 0.4, leave));
+    // Held back from the camera and scaled down: this is the one act the copy
+    // sits directly on top of, and at full size the wireframe cuts straight
+    // through the headline.
+    root.position.z = -1.7;
+    // Big enough that its rim and node shell surround the copy rather than
+    // hiding behind it: the panel behind the text covers the orb's middle, so
+    // what reads on screen is a glowing ring with the words sitting inside it.
+    root.scale.setScalar(
+      lerp(0.3, narrowScale(2.0, 1.15), easeOutBack(form)) * lerp(1, 0.4, leave)
+    );
 
     // Core: breathing amplitude, and a heartbeat that pushes harder as the
     // section settles — the visual claim that it is working on something.
-    uniforms.uTime.value = reduced ? 0.4 : time;
-    uniforms.uAmp.value = lerp(0.04, 0.15, form) * (reduced ? 0.4 : 1 + Math.sin(time * 1.6) * 0.25);
-    uniforms.uOpacity.value = alive * form * (1 - leave * 0.85);
-    uniforms.uGlow.value = 0.7 + (reduced ? 0.3 : Math.sin(time * 2.2) * 0.3 + 0.3);
+    const u = orbMaterial.current?.uniforms;
+    if (u) {
+      u.uTime.value = reduced ? 0.4 : time;
+      u.uAmp.value = lerp(0.04, 0.15, form) * (reduced ? 0.4 : 1 + Math.sin(time * 1.6) * 0.25);
+      u.uOpacity.value = alive * form * (1 - leave * 0.85);
+      u.uGlow.value = 0.7 + (reduced ? 0.3 : Math.sin(time * 2.2) * 0.3 + 0.3);
+    }
 
     if (core.current && !reduced) {
       core.current.rotation.y += delta * 0.18;
       core.current.rotation.x += delta * 0.07;
     }
-    if (shell.current && !reduced) {
-      shell.current.rotation.y -= delta * 0.12;
-      shell.current.rotation.z += delta * 0.05;
-      (shell.current.material as MeshBasicMaterial).opacity = 0.18 * form * (1 - leave);
+    if (shell.current) {
+      if (!reduced) {
+        shell.current.rotation.y -= delta * 0.12;
+        shell.current.rotation.z += delta * 0.05;
+      }
+      (shell.current.material as MeshBasicMaterial).opacity = 0.2 * form * (1 - leave);
     }
     if (nodes.current) {
       nodes.current.rotation.y = time * 0.09;
@@ -262,7 +320,7 @@ export function CoachOrb() {
     }
 
     // Motes stream inward along their curves, wrapping at the orb.
-    const moteAlpha = norm(t, 4.72, 5.15) * (1 - leave);
+    const moteAlpha = norm(read, 0.02, 0.2) * (1 - leave);
     if (motes.current) {
       motes.current.visible = moteAlpha > 0.02;
       if (motes.current.visible) {
@@ -288,17 +346,23 @@ export function CoachOrb() {
       guide.material.opacity = moteAlpha * 0.13;
     });
 
-    // Messages fade in one after another and drift. Their x is pulled inward on
-    // narrow frames so they never fall off the sides.
+    // Messages fade in one after another and drift.
+    //
+    // Their x is scaled to the frame the camera actually has: the slots are
+    // authored for a 16:9 window, and on anything narrower a fixed offset walks
+    // them straight off the sides. `MESSAGE_HALF_WIDTH` is the plane's own half
+    // width, so the clamp keeps the whole bubble inside, not just its centre.
     const halfWidth =
-      Math.tan(((camera.fov ?? 45) * Math.PI) / 360) * Math.abs(camera.position.z) * camera.aspect;
-    const fit = clamp(halfWidth / 3.3, 0.55, 1.15);
+      Math.tan((camera.fov * Math.PI) / 360) * Math.abs(camera.position.z) * camera.aspect -
+      MESSAGE_HALF_WIDTH;
+    const outermost = Math.max(...MESSAGE_SLOTS.map((slot) => Math.abs(slot[0])));
+    const fit = clamp(halfWidth / outermost, 0.45, 1.1);
 
-    for (let i = 0; i < MESSAGE_SLOTS.length; i++) {
+    for (let i = 0; showMessages && i < MESSAGE_SLOTS.length; i++) {
       const mesh = messages.current[i];
       if (!mesh) continue;
       const slot = MESSAGE_SLOTS[i];
-      const show = clamp01(norm(t, 4.9 + i * 0.075, 5.12 + i * 0.075)) * (1 - leave);
+      const show = clamp01(norm(read, 0.12 + i * 0.08, 0.3 + i * 0.08)) * (1 - leave);
       const material = mesh.material as MeshBasicMaterial;
       material.opacity = show * 0.96;
       mesh.visible = material.opacity > 0.02;
@@ -315,17 +379,24 @@ export function CoachOrb() {
   });
 
   return (
-    <group ref={group}>
-      {/* Deforming core */}
+    <>
+      <group ref={group}>
+        {/* Deforming core */}
       <mesh ref={core}>
         {/* Detail 16 ≈ 5.8k triangles — enough that vertex displacement reads
             as a smooth surface, far short of the point where it costs anything. */}
         <icosahedronGeometry args={[0.92, 16]} />
+        {/* Additive, not alpha-blended: the orb is a light source, and over a
+            near-black page that is the difference between a glow and a decal. */}
+        {/* Additive, not alpha-blended: the orb is a light source, and over a
+            near-black page that is the difference between a glow and a decal. */}
         <shaderMaterial
+          ref={orbMaterial}
           vertexShader={ORB_VERTEX}
           fragmentShader={ORB_FRAGMENT}
           uniforms={uniforms}
           transparent
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -377,28 +448,36 @@ export function CoachOrb() {
         />
       </points>
 
-      {/* Sample insights */}
-      {messageMaps.map((map, i) => (
-        <mesh
-          key={i}
-          ref={(node) => {
-            messages.current[i] = node;
-          }}
-          position={MESSAGE_SLOTS[i]}
-        >
-          <planeGeometry args={[1.92, 0.36]} />
-          <meshBasicMaterial
-            map={map}
-            transparent
-            opacity={0}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
+        {/* Scales are in the orb's own (heavily scaled) space, so they are
+            small numbers here and large ones on screen. */}
+        <Glow position={[0, 0, -0.5]} scale={2.4} color="#22C55E" opacity={0.34} />
+        <Glow position={[0, 0, 0.7]} scale={1.2} color="#7CF7B0" opacity={0.26} />
+      </group>
 
-      <Glow position={[0, 0, -0.5]} scale={5.2} color="#22C55E" opacity={0.42} />
-      <Glow position={[0, 0, 0.7]} scale={2.6} color="#7CF7B0" opacity={0.3} />
-    </group>
+      {/* Sample insights, kept at the camera's own depth and unscaled so they
+          land in the margins beside the copy rather than behind it. */}
+      <group ref={messageGroup}>
+        {messageMaps.map((map, i) => (
+          <mesh
+            key={i}
+            ref={(node) => {
+              messages.current[i] = node;
+            }}
+            position={MESSAGE_SLOTS[i]}
+          >
+            {/* 1024 × 192 texture, so the plane keeps a 16 : 3 ratio. */}
+            <planeGeometry args={[MESSAGE_WIDTH, (MESSAGE_WIDTH * 192) / 1024]} />
+            <meshBasicMaterial
+              map={map}
+              transparent
+              opacity={0}
+              depthWrite={false}
+              depthTest={false}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+    </>
   );
 }

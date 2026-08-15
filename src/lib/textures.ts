@@ -383,16 +383,18 @@ export function chatBubbleTexture(name: string, message: string): Texture {
     const h = 256;
     const { canvas, ctx } = makeCanvas(w, h);
 
-    ctx.fillStyle = 'rgba(22,33,58,0.95)';
+    // Lighter than the app's own chat bubbles on purpose: this one floats over
+    // a near-black globe, and the in-app navy would vanish into it.
+    ctx.fillStyle = 'rgba(38,54,88,0.97)';
     roundRect(ctx, 8, 8, w - 16, h - 56, 40);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(56,189,248,0.35)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(56,189,248,0.7)';
+    ctx.lineWidth = 4;
     roundRect(ctx, 8, 8, w - 16, h - 56, 40);
     ctx.stroke();
 
     // Tail
-    ctx.fillStyle = 'rgba(22,33,58,0.95)';
+    ctx.fillStyle = 'rgba(38,54,88,0.97)';
     ctx.beginPath();
     ctx.moveTo(72, h - 50);
     ctx.lineTo(126, h - 50);

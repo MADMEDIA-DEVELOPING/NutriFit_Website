@@ -115,6 +115,9 @@ button {
   display: flex;
   align-items: center;
   padding: clamp(96px, 12vh, 160px) var(--gutter);
+  /* Anchor links land the section top at the viewport top, where the fixed nav
+     is sitting. Without this the headline arrives underneath it. */
+  scroll-margin-top: 78px;
 }
 
 .section__inner {

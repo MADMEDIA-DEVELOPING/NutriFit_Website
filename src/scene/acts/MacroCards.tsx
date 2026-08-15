@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { DoubleSide, type Group, type Mesh, type MeshBasicMaterial } from 'three';
-import { scrollState, stageRead } from '@/lib/scroll';
+import { narrowScale, scrollState, stageRead } from '@/lib/scroll';
 import { clamp01, damp, easeOutBack, easeOutCubic, envelope, lerp, norm, wrap } from '@/lib/math';
 import { macroCardTexture, type MacroCardSpec } from '@/lib/textures';
 import { Glow } from '../parts/Glow';
@@ -79,6 +79,7 @@ export function MacroCards() {
 
     root.position.x = damp(root.position.x, scrollState.narrow ? 0 : HOME_X, 3.2, delta);
     root.position.y = scrollState.narrow ? -0.35 : 0;
+    root.scale.setScalar(narrowScale(1, 0.72));
 
     const time = state.clock.elapsedTime;
     const reduced = scrollState.reducedMotion;

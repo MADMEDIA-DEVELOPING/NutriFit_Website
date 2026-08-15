@@ -6,16 +6,16 @@ import {
   BufferGeometry,
   Line,
   LineBasicMaterial,
+  Points,
+  PointsMaterial,
   QuadraticBezierCurve3,
   Vector3,
   type Group,
   type Mesh,
   type MeshBasicMaterial,
-  type Points,
-  type PointsMaterial,
   type Sprite,
 } from 'three';
-import { scrollState } from '@/lib/scroll';
+import { scrollState, stageRead } from '@/lib/scroll';
 import { clamp01, damp, easeOutBack, easeOutCubic, envelope, lerp, norm, wrap } from '@/lib/math';
 import { chatBubbleTexture, dotTexture, logoTexture } from '@/lib/textures';
 import { Glow } from '../parts/Glow';
@@ -89,13 +89,38 @@ export function FriendsGlobe() {
         const curve = new QuadraticBezierCurve3(start.clone(), mid, end.clone());
         const geometry = new BufferGeometry().setFromPoints(curve.getPoints(ARC_SEGMENTS));
         geometry.setDrawRange(0, 0);
+
         const material = new LineBasicMaterial({
           color: 0xdcecff,
           transparent: true,
-          opacity: 0.6,
+          opacity: 0.85,
           depthWrite: false,
         });
-        return { line: new Line(geometry, material), curve, material, geometry };
+
+        // A `THREE.Line` is one hardware pixel wide on every platform that
+        // matters, which all but disappears against the globe. Drawing a run of
+        // dots over the *same geometry* — so it shares the draw range and grows
+        // in step — gives the connection real weight for the cost of one extra
+        // draw call and no extra vertices.
+        const beadMaterial = new PointsMaterial({
+          map: dotTexture(),
+          color: 0xbfe6ff,
+          size: 0.05,
+          transparent: true,
+          opacity: 0.9,
+          depthWrite: false,
+          sizeAttenuation: true,
+          toneMapped: false,
+        });
+
+        return {
+          line: new Line(geometry, material),
+          beads: new Points(geometry, beadMaterial),
+          curve,
+          material,
+          beadMaterial,
+          geometry,
+        };
       }),
     [pinPositions]
   );
@@ -105,6 +130,7 @@ export function FriendsGlobe() {
       arcs.forEach((arc) => {
         arc.geometry.dispose();
         arc.material.dispose();
+        arc.beadMaterial.dispose();
       }),
     [arcs]
   );
@@ -139,20 +165,22 @@ export function FriendsGlobe() {
     if (!root || !ball) return;
 
     const t = scrollState.t;
-    const alive = envelope(t, 3.55, 4.0, 4.62, 5.15);
+    const read = stageRead('social');
+    const alive = envelope(t, 3.3, 3.95, 4.45, 4.95);
     root.visible = alive > 0.002;
     if (!root.visible) return;
 
     const time = state.clock.elapsedTime;
     const reduced = scrollState.reducedMotion;
 
-    const form = easeOutCubic(norm(t, 3.6, 4.1));
-    const leave = easeOutCubic(norm(t, 4.62, 5.15));
+    const form = easeOutCubic(norm(t, 3.35, 3.95));
+    const leave = easeOutCubic(norm(t, 4.45, 4.95));
 
     const homeX = scrollState.narrow ? 0 : HOME_X;
     root.position.x = damp(root.position.x, lerp(homeX + 4.4, homeX, form), 3.2, delta);
-    root.scale.setScalar(lerp(0.1, 1, form) * lerp(1, 0.25, leave));
-    root.position.y = reduced ? 0 : Math.sin(time * 0.45) * 0.07;
+    root.scale.setScalar(lerp(0.1, scrollState.narrow ? 0.72 : 1, form) * lerp(1, 0.25, leave));
+    root.position.y =
+      (scrollState.narrow ? -0.25 : 0) + (reduced ? 0 : Math.sin(time * 0.45) * 0.07);
 
     if (!reduced) ball.rotation.y += delta * 0.055;
     ball.rotation.x = damp(ball.rotation.x, -0.18 + scrollState.pointer.y * 0.1, 2.2, delta);
@@ -161,11 +189,12 @@ export function FriendsGlobe() {
       (dots.current.material as PointsMaterial).opacity = alive * 0.55 * form;
     }
 
-    // Pins pop, staggered, then the arcs draw between them.
+    // Pins pop, staggered, then the arcs draw between them — all on the
+    // reading window, so the connections build while you read about them.
     for (let i = 0; i < PINS.length; i++) {
       const pin = pins.current[i];
       if (!pin) continue;
-      const appear = easeOutBack(clamp01(norm(t, 3.78 + i * 0.045, 3.95 + i * 0.045)));
+      const appear = easeOutBack(clamp01(norm(read, 0.04 + i * 0.04, 0.16 + i * 0.04)));
       const bob = reduced ? 1 : 1 + Math.sin(time * 2 + i * 1.7) * 0.05;
       pin.scale.setScalar(0.3 * appear * bob * (1 - leave));
       pin.visible = appear > 0.01;
@@ -173,9 +202,10 @@ export function FriendsGlobe() {
 
     for (let i = 0; i < arcs.length; i++) {
       const arc = arcs[i];
-      const draw = easeOutCubic(clamp01(norm(t, 4.0 + i * 0.035, 4.26 + i * 0.035)));
+      const draw = easeOutCubic(clamp01(norm(read, 0.3 + i * 0.045, 0.48 + i * 0.045)));
       arc.geometry.setDrawRange(0, Math.round(draw * (ARC_SEGMENTS + 1)));
-      arc.material.opacity = 0.6 * alive * (1 - leave);
+      arc.material.opacity = 0.85 * alive * (1 - leave);
+      arc.beadMaterial.opacity = 0.9 * alive * (1 - leave);
 
       // A packet of light running the finished route, so the connections read
       // as live traffic rather than as static wires.
@@ -191,7 +221,7 @@ export function FriendsGlobe() {
     }
 
     if (bubble.current) {
-      const show = norm(t, 4.16, 4.4);
+      const show = norm(read, 0.62, 0.78);
       const material = bubble.current.material as MeshBasicMaterial;
       material.opacity = show * alive * (1 - leave);
       bubble.current.visible = material.opacity > 0.02;
@@ -255,9 +285,12 @@ export function FriendsGlobe() {
           </sprite>
         ))}
 
-        {/* Connections */}
+        {/* Connections: a hairline and a run of beads over one shared geometry. */}
         {arcs.map((arc, i) => (
-          <primitive key={i} object={arc.line} />
+          <primitive key={`arc-${i}`} object={arc.line} />
+        ))}
+        {arcs.map((arc, i) => (
+          <primitive key={`beads-${i}`} object={arc.beads} />
         ))}
 
         {/* Traffic along the connections */}

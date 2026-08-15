@@ -225,9 +225,11 @@ export const stageRead = (name: StageName): number =>
   scrollState.read[stageIndex(name)] ?? 0;
 
 /**
- * How far an act should sit off-centre so it does not collide with the column
- * of text beside it. Collapses to 0 on narrow screens, where text stacks over
- * the scene instead of sitting next to it.
+ * How much to shrink an act on a narrow viewport.
+ *
+ * A phone frame is roughly a third as wide as a laptop one in world units, so
+ * an act sized for the desktop composition runs straight off both sides. Each
+ * act multiplies its own scale by this rather than being re-authored twice.
  */
-export const sideOffset = (side: 'left' | 'right', amount = 2.1): number =>
-  scrollState.narrow ? 0 : (side === 'left' ? -1 : 1) * amount;
+export const narrowScale = (wide: number, narrow: number): number =>
+  scrollState.narrow ? narrow : wide;

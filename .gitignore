@@ -1,0 +1,25 @@
+node_modules/
+dist/
+dist-ssr/
+
+# Vite / TS caches
+.vite/
+*.tsbuildinfo
+
+# Local env overrides
+.env
+.env.local
+.env.*.local
+
+# Editor / OS noise
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

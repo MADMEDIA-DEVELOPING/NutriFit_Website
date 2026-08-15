@@ -364,18 +364,46 @@
 .coach {
   text-align: center;
   /* "The entire scene darkens slightly" — done here rather than in WebGL, so
-     it costs a gradient instead of a full-screen pass. */
-  background: radial-gradient(
-    58% 46% at 50% 46%,
-    rgba(7, 11, 20, 0.9) 0%,
-    rgba(7, 11, 20, 0.55) 45%,
+     it costs a gradient instead of a full-screen pass. Deliberately gentle and
+     full-width: the heavy lifting for legibility is the panel below. */
+  background: linear-gradient(
+    180deg,
+    rgba(7, 11, 20, 0) 0%,
+    rgba(7, 11, 20, 0.34) 30%,
+    rgba(7, 11, 20, 0.34) 70%,
     rgba(7, 11, 20, 0) 100%
   );
 }
 
+/*
+ * Narrower than the other sections, and sitting on its own soft panel.
+ *
+ * This is the only section whose copy is centred over its act rather than
+ * beside it, so the orb is directly behind the headline and the floating
+ * insights live in the margins either side. A section-wide scrim would have to
+ * dim those margins to make the middle readable — a panel scoped to the column
+ * darkens exactly what is behind the text and leaves the insights alone.
+ */
 .coach__inner {
-  max-width: 860px;
+  position: relative;
+  max-width: 660px;
   margin-inline: auto;
+  padding: clamp(24px, 4vh, 44px) clamp(20px, 3vw, 36px);
+}
+
+.coach__inner::before {
+  content: '';
+  position: absolute;
+  inset: -6% -9%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    58% 54% at 50% 50%,
+    rgba(7, 11, 20, 0.94) 0%,
+    rgba(7, 11, 20, 0.86) 52%,
+    rgba(7, 11, 20, 0.4) 80%,
+    rgba(7, 11, 20, 0) 100%
+  );
 }
 
 .coach .lede,
@@ -393,7 +421,9 @@
 .coach__quota {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* 170px, not 200: the coach column is the narrowest on the page, and at 200
+     the three tiers wrap to 2 + 1 and stop reading as a ladder. */
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   margin-top: clamp(32px, 5vh, 48px);
 }
 
@@ -651,8 +681,8 @@
 /* ── Narrow screens ────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  /* The coach copy is centred rather than in a `.split`, so it needs its own
-     ground once the orb is directly behind it instead of beside it. */
+  /* The soft ellipse cannot cover a full-width column on a phone, so the coach
+     copy falls back to the same glass card the split sections use. */
   .coach__inner {
     padding: clamp(20px, 5vw, 32px);
     border-radius: var(--r-2xl);
@@ -660,6 +690,10 @@
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border-soft);
+  }
+
+  .coach__inner::before {
+    display: none;
   }
 
   .hero__scrim {

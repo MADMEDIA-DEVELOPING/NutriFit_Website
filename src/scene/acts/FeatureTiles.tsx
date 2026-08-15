@@ -2,13 +2,15 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three';
-import { scrollState, stageProgress } from '@/lib/scroll';
+import { narrowScale, scrollState, stageRead } from '@/lib/scroll';
 import { clamp01, damp, easeOutCubic, envelope, lerp, norm } from '@/lib/math';
 import { tileTexture, type TileSpec } from '@/lib/textures';
 import { Glow } from '../parts/Glow';
 
-const HOME_X = 2.25;
-const RADIUS = 1.62;
+const HOME_X = 2.05;
+const RADIUS = 1.42;
+/** How far the focused tile steps out of the ring toward the viewer. */
+const PUSH = 0.34;
 
 const TILES: TileSpec[] = [
   { key: 'composer', title: 'Food Composer', caption: '~750 ingredients', glyph: 'flask', from: '#1B7A45', to: '#0F5F63' },
@@ -43,7 +45,7 @@ export function FeatureTiles() {
     if (!root || !carousel) return;
 
     const t = scrollState.t;
-    const alive = envelope(t, 2.55, 3.0, 3.6, 4.15);
+    const alive = envelope(t, 2.3, 2.95, 3.45, 3.95);
     root.visible = alive > 0.002;
     if (!root.visible) return;
 
@@ -51,16 +53,22 @@ export function FeatureTiles() {
     const reduced = scrollState.reducedMotion;
 
     // Emerge from where the phone was, on the opposite side of the page.
-    const unfold = easeOutCubic(norm(t, 2.6, 3.1));
-    const collapse = easeOutCubic(norm(t, 3.62, 4.15));
+    const unfold = easeOutCubic(norm(t, 2.35, 2.95));
+    const collapse = easeOutCubic(norm(t, 3.45, 3.95));
 
     const homeX = scrollState.narrow ? 0 : HOME_X;
     root.position.x = damp(root.position.x, lerp(homeX - 4.4, homeX, unfold), 3.2, delta);
-    root.position.y = damp(root.position.y, (reduced ? 0 : Math.sin(time * 0.5) * 0.06), 3, delta);
-    root.scale.setScalar(lerp(0.12, 1, unfold) * lerp(1, 0.2, collapse));
+    root.position.y = damp(
+      root.position.y,
+      (scrollState.narrow ? -0.2 : 0) + (reduced ? 0 : Math.sin(time * 0.5) * 0.06),
+      3,
+      delta
+    );
+    root.scale.setScalar(lerp(0.12, narrowScale(1, 0.62), unfold) * lerp(1, 0.2, collapse));
 
-    // Focus walks 0 → 5 across the section, so all six get their moment.
-    const focus = clamp01(norm(stageProgress('explore'), 0.16, 0.88)) * (TILES.length - 1);
+    // Focus walks 0 → 5 across the reading window, so all six get their moment
+    // while the section is the one on screen.
+    const focus = clamp01(norm(stageRead('explore'), 0.04, 0.92)) * (TILES.length - 1);
     const step = (Math.PI * 2) / TILES.length;
     carousel.rotation.y = damp(carousel.rotation.y, -focus * step, 3.6, delta);
     carousel.rotation.x = damp(
@@ -84,7 +92,7 @@ export function FeatureTiles() {
       tile.position.y = LIFT[i] + emphasis * 0.1 + (reduced ? 0 : Math.sin(time * 0.8 + i) * 0.03);
 
       // The focused tile steps out of the ring toward the viewer.
-      const push = emphasis * 0.42;
+      const push = emphasis * PUSH;
       tile.position.x = Math.sin((i / TILES.length) * Math.PI * 2) * (RADIUS + push);
       tile.position.z = Math.cos((i / TILES.length) * Math.PI * 2) * (RADIUS + push);
 
@@ -94,7 +102,9 @@ export function FeatureTiles() {
       }
       const plate = tile.children[0] as Mesh | undefined;
       if (plate) {
-        (plate.material as MeshStandardMaterial).emissiveIntensity = lerp(0.05, 0.5, emphasis);
+        // Barely-there emissive. The backing plate is a bezel; pushed any
+        // brighter it turns every tile green and swamps its own palette.
+        (plate.material as MeshStandardMaterial).emissiveIntensity = lerp(0.01, 0.09, emphasis);
       }
     }
   });
@@ -115,12 +125,15 @@ export function FeatureTiles() {
             >
               {/* Backing plate gives the tile real thickness and an edge. */}
               <RoundedBox args={[1.16, 1.16, 0.07]} radius={0.11} smoothness={4}>
+                {/* Low metalness on purpose: the rig's green rim light is
+                    strong, and a metallic bezel mirrors it hard enough to turn
+                    every tile green regardless of its own gradient. */}
                 <meshStandardMaterial
                   color="#0E1729"
-                  roughness={0.4}
-                  metalness={0.5}
-                  emissive="#22C55E"
-                  emissiveIntensity={0.05}
+                  roughness={0.62}
+                  metalness={0.15}
+                  emissive="#2BD37A"
+                  emissiveIntensity={0.01}
                 />
               </RoundedBox>
               <mesh position={[0, 0, 0.038]}>

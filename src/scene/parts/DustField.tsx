@@ -55,7 +55,7 @@ export function DustField() {
 
     // Present throughout, but stepped back once the page turns to pricing so
     // the type there sits on something close to flat black.
-    const alive = envelope(scrollState.t, -1, -0.6, 5.4, 6.4);
+    const alive = envelope(scrollState.t, -1, -0.6, 5.3, 6.2);
     field.visible = alive > 0.005;
     if (!field.visible) return;
 

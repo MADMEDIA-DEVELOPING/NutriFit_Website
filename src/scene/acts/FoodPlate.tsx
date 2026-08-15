@@ -2,12 +2,12 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import type { Group } from 'three';
-import { scrollState } from '@/lib/scroll';
+import { narrowScale, scrollState } from '@/lib/scroll';
 import { damp, easeOutCubic, envelope, lerp, norm } from '@/lib/math';
 import { GroundGlow } from '../parts/Glow';
 
 /** Where the plate rests during the hero, before the diary pulls it away. */
-const HOME: [number, number, number] = [1.95, -0.95, 0];
+const HOME: [number, number, number] = [1.95, -1.12, 0];
 
 /**
  * The hero plate: ceramic dish, grilled chicken, avocado, rice, broccoli and
@@ -42,9 +42,10 @@ export function FoodPlate() {
     const recede = easeOutCubic(norm(t, 0.22, 0.9));
 
     // On narrow screens the copy sits over the scene, so the plate drops below
-    // the text block instead of standing beside it.
+    // the text block — far enough to clear the download buttons and badges,
+    // into the empty band above the scroll hint.
     const homeX = scrollState.narrow ? 0 : HOME[0];
-    const homeY = HOME[1] + (scrollState.narrow ? -0.55 : 0);
+    const homeY = HOME[1] + (scrollState.narrow ? -2.0 : 0);
     const float = reduced ? 0 : Math.sin(time * 0.6) * 0.09;
 
     root.position.x = damp(root.position.x, lerp(homeX, homeX * 0.4, recede), 3, delta);
@@ -52,7 +53,7 @@ export function FoodPlate() {
     // Far enough back that the fog finishes the job — no opacity bookkeeping.
     root.position.z = damp(root.position.z, lerp(HOME[2], -17, recede), 3, delta);
 
-    const scale = lerp(scrollState.narrow ? 0.8 : 0.92, 0.2, recede);
+    const scale = lerp(narrowScale(0.92, 0.5), 0.2, recede);
     root.scale.setScalar(damp(root.scale.x || scale, scale, 3, delta));
 
     // Slow turntable, accelerating as it leaves so the exit reads as motion

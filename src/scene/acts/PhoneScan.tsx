@@ -9,7 +9,7 @@ import {
   type Mesh,
   type MeshBasicMaterial,
 } from 'three';
-import { scrollState } from '@/lib/scroll';
+import { narrowScale, scrollState, stageRead } from '@/lib/scroll';
 import { clamp01, damp, easeOutBack, easeOutCubic, envelope, lerp, norm } from '@/lib/math';
 import {
   barcodeTexture,
@@ -50,6 +50,7 @@ export function PhoneScan() {
     if (!root.visible) return;
     root.position.x = damp(root.position.x, scrollState.narrow ? 0 : HOME_X, 3.2, delta);
     root.position.y = scrollState.narrow ? -0.2 : 0;
+    root.scale.setScalar(narrowScale(1, 0.55));
   });
 
   return (
@@ -57,9 +58,11 @@ export function PhoneScan() {
       <Phone />
 
       {/* One item per code path the app really has: a packaged product with a
-          barcode, a cooked dish only a photo can describe, and a whole food. */}
+          barcode, a cooked dish only a photo can describe, and a whole food.
+          They sit close to the device — pushed any further out they leave the
+          frame on a 16:10 laptop before they ever reach the reticle. */}
       <ScanItem
-        slot={[-1.2, 1.0, 0.8]}
+        slot={[-0.98, 0.86, 0.8]}
         enterAt={0.1}
         scanAt={0.3}
         title="Skyr natural 0%"
@@ -69,7 +72,7 @@ export function PhoneScan() {
       </ScanItem>
 
       <ScanItem
-        slot={[-1.55, 0.05, 1.0]}
+        slot={[-1.22, 0.02, 1.0]}
         enterAt={0.26}
         scanAt={0.48}
         title="Pizza margherita"
@@ -79,7 +82,7 @@ export function PhoneScan() {
       </ScanItem>
 
       <ScanItem
-        slot={[-1.15, -0.9, 0.7]}
+        slot={[-0.9, -0.98, 0.7]}
         enterAt={0.42}
         scanAt={0.64}
         title="Banana, medium"
@@ -112,14 +115,15 @@ function Phone() {
     if (!root) return;
 
     const t = scrollState.t;
+    const read = stageRead('scan');
     const time = state.clock.elapsedTime;
     const reduced = scrollState.reducedMotion;
 
     // Arrival: the dashboard's flat plane rotates into a solid device.
-    const arrive = easeOutBack(norm(t, IN, IN + 0.55));
+    const arrive = easeOutBack(norm(t, IN, 1.95));
     // Departure: the device is what the Explore tiles unfold from, so it
     // shrinks into the point they emerge from rather than fading in place.
-    const leave = easeOutCubic(norm(t, 2.66, OUT));
+    const leave = easeOutCubic(norm(t, 2.1, OUT));
 
     const scale = lerp(0.2, 1, arrive) * lerp(1, 0.12, leave);
     root.scale.setScalar(scale);
@@ -140,7 +144,7 @@ function Phone() {
     root.position.y = (reduced ? 0 : Math.sin(time * 0.62) * 0.06) + leave * 0.6;
 
     // Screens cross-fade: the diary you just read about becomes the scanner.
-    const toScan = norm(t, 1.78, 2.05);
+    const toScan = norm(read, 0.02, 0.16);
     if (dashboard.current) {
       (dashboard.current.material as MeshBasicMaterial).opacity = (1 - toScan) * arrive;
     }
@@ -155,7 +159,7 @@ function Phone() {
     // the phone's silhouette when open, and no blade size satisfies both — so
     // this is an aperture in space, and the screen cross-fade does the reveal.
     if (iris.current) {
-      const open = easeOutCubic(norm(t, 1.8, 2.16));
+      const open = easeOutCubic(norm(read, 0.04, 0.24));
       iris.current.visible = open < 0.99 && arrive > 0.2;
       iris.current.rotation.z = open * 1.1;
       iris.current.children.forEach((blade, i) => {
@@ -171,7 +175,7 @@ function Phone() {
 
     // A green bar sweeping the screen once the scanner is live.
     if (sweep.current) {
-      const live = norm(t, 2.05, 2.6) * (1 - leave);
+      const live = norm(read, 0.2, 0.36) * (1 - leave);
       sweep.current.visible = live > 0.02;
       const cycle = reduced ? 0.5 : (time * 0.5) % 1;
       sweep.current.position.y = lerp(1.15, -1.15, cycle);
@@ -233,11 +237,11 @@ function Phone() {
 
       {/* Aperture ring — the part of the iris that stays once it is open. */}
       <mesh position={[0, 0, 0.6]}>
-        <ringGeometry args={[0.66, 0.7, 48]} />
+        <ringGeometry args={[0.5, 0.525, 48]} />
         <meshBasicMaterial
           color="#22C55E"
           transparent
-          opacity={0.35}
+          opacity={0.28}
           side={DoubleSide}
           depthWrite={false}
           toneMapped={false}
@@ -257,6 +261,7 @@ function Phone() {
 
 interface ScanItemProps {
   slot: [number, number, number];
+  /** Both in `stageRead('scan')` space, 0→1 across the section's reading window. */
   enterAt: number;
   scanAt: number;
   title: string;
@@ -270,6 +275,9 @@ interface ScanItemProps {
  */
 function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemProps) {
   const holder = useRef<Group>(null);
+  // The prop tumbles; the reticle and the readout must not, so only the prop
+  // lives inside the spinning group.
+  const spinner = useRef<Group>(null);
   const reticle = useRef<Group>(null);
   const label = useRef<Mesh>(null);
   const painted = useRef(-1);
@@ -286,12 +294,12 @@ function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemPro
     const root = holder.current;
     if (!root) return;
 
-    const t = scrollState.t;
+    const read = stageRead('scan');
     const time = state.clock.elapsedTime;
     const reduced = scrollState.reducedMotion;
 
-    const enter = easeOutCubic(norm(t, enterAt, enterAt + 0.3));
-    const exit = easeOutCubic(norm(t, 2.62, OUT));
+    const enter = easeOutCubic(norm(read, enterAt, enterAt + 0.16));
+    const exit = easeOutCubic(norm(scrollState.t, 2.1, OUT));
     root.visible = enter > 0.01 && exit < 0.98;
     if (!root.visible) return;
 
@@ -304,13 +312,13 @@ function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemPro
       lerp(slot[2] - 1.4, slot[2], enter)
     );
     root.scale.setScalar(lerp(0.3, 1, enter) * lerp(1, 0.2, exit));
-    if (!reduced) {
-      root.rotation.y += delta * 0.35;
-      root.rotation.z = Math.sin(time * 0.4 + slot[0]) * 0.08;
+    if (spinner.current && !reduced) {
+      spinner.current.rotation.y += delta * 0.35;
+      spinner.current.rotation.z = Math.sin(time * 0.4 + slot[0]) * 0.08;
     }
 
     // Lock-on pulse: the reticle snaps in, flashes, and stays as a thin frame.
-    const lock = norm(t, scanAt, scanAt + 0.14);
+    const lock = norm(read, scanAt, scanAt + 0.08);
     if (reticle.current) {
       reticle.current.visible = lock > 0.01;
       const snap = easeOutBack(lock);
@@ -324,7 +332,7 @@ function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemPro
 
     // Readout, one character at a time, only repainted when the count changes.
     if (label.current) {
-      const typing = norm(t, scanAt + 0.05, scanAt + 0.34);
+      const typing = norm(read, scanAt + 0.03, scanAt + 0.2);
       const chars = Math.round(typing * totalChars);
       if (chars !== painted.current) {
         painted.current = chars;
@@ -333,13 +341,13 @@ function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemPro
       const material = label.current.material as MeshBasicMaterial;
       material.opacity = clamp01(typing * 3) * (1 - exit);
       label.current.visible = material.opacity > 0.02;
-      label.current.position.y = -0.52 - drift * 0.5;
+      label.current.position.y = -0.5 - drift * 0.5;
     }
   });
 
   return (
     <group ref={holder} position={slot}>
-      {children}
+      <group ref={spinner}>{children}</group>
 
       {/* Four corner brackets, each an L of two thin bars.
           Flat list, not a group per corner: the frame loop walks
@@ -360,9 +368,10 @@ function ScanItem({ slot, enterAt, scanAt, title, lines, children }: ScanItemPro
         ))}
       </group>
 
-      {/* Typed nutrition readout */}
-      <mesh ref={label} position={[0, -0.52, 0.36]}>
-        <planeGeometry args={[1.02, 0.478]} />
+      {/* Typed nutrition readout, nudged toward the phone so the readouts stay
+          inside the frame rather than hanging off the left edge. */}
+      <mesh ref={label} position={[0.2, -0.52, 0.36]}>
+        <planeGeometry args={[0.88, 0.4125]} />
         <meshBasicMaterial
           map={live.texture}
           transparent
@@ -432,9 +441,10 @@ function PizzaSlice() {
         <extrudeGeometry args={[shape, { depth: 0.07, bevelEnabled: false, curveSegments: 8 }]} />
         <meshStandardMaterial color="#EFC066" roughness={0.72} />
       </mesh>
-      {/* Crust ridge along the outer edge. */}
-      <mesh position={[0.68, 0, 0.035]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.075, 0.075, 0.62, 12]} />
+      {/* Crust ridge. The wedge is drawn in XY and extruded along Z, so the
+          outer edge runs along Y — which is a cylinder's own axis, unrotated. */}
+      <mesh position={[0.69, 0, 0.035]}>
+        <cylinderGeometry args={[0.075, 0.075, 0.6, 12]} />
         <meshStandardMaterial color="#D9A048" roughness={0.8} />
       </mesh>
       {[
@@ -456,4 +466,12 @@ function Banana() {
     <group rotation={[0.2, 0, -0.5]}>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.34, 0.095, 10, 22, Math.PI * 0.95]} />
-        <meshStandardMaterial color="#F0C93F" roughness={0.6
+        <meshStandardMaterial color="#F0C93F" roughness={0.62} />
+      </mesh>
+      <mesh position={[0.33, 0, 0.06]}>
+        <sphereGeometry args={[0.07, 10, 8]} />
+        <meshStandardMaterial color="#7A6320" roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}

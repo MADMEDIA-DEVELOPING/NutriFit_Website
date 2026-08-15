@@ -40,8 +40,11 @@ export function Pricing() {
                 </>
               ) : (
                 <>
+                  {/* The card is already headed "Free"; repeating the word as
+                      the price says nothing. A zero does. */}
                   <p className="tier__price">
-                    <span className="tier__amount">Free</span>
+                    <span className="tier__amount">$0</span>
+                    <span className="tier__period">forever</span>
                   </p>
                   <p className="tier__yearly">No account needed</p>
                 </>
