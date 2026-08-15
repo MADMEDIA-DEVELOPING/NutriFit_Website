@@ -1,0 +1,323 @@
+/* ── Typography primitives ─────────────────────────────────────────────── */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-gradient);
+}
+
+.title {
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-block: 0.35em 0;
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: var(--fs-lede);
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin-top: var(--stack);
+  max-width: 56ch;
+  text-wrap: pretty;
+}
+
+.note {
+  margin-top: var(--stack);
+  padding-left: 18px;
+  border-left: 2px solid var(--border);
+  font-size: var(--fs-small);
+  color: var(--text-faint);
+  max-width: 54ch;
+}
+
+.gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Logo ──────────────────────────────────────────────────────────────── */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.logo__mark {
+  flex: none;
+  filter: drop-shadow(0 4px 18px rgba(34, 197, 94, 0.35));
+}
+
+.logo__word {
+  font-size: 1.15rem;
+}
+
+/* ── Nav ───────────────────────────────────────────────────────────────── */
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px var(--gutter);
+  transition:
+    background 0.4s var(--ease-out),
+    backdrop-filter 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out);
+  border-bottom: 1px solid transparent;
+}
+
+.nav--stuck {
+  background: rgba(7, 11, 20, 0.72);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-bottom-color: var(--border-soft);
+}
+
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.6vw, 26px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.nav__link {
+  position: relative;
+  padding: 6px 2px;
+  transition: color 0.25s var(--ease-out);
+}
+
+.nav__link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-gradient);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.nav__link:hover,
+.nav__link[aria-current='true'] {
+  color: var(--text);
+}
+
+.nav__link[aria-current='true']::after,
+.nav__link:hover::after {
+  transform: scaleX(1);
+}
+
+/* The scroll-progress rail under the nav — the journey's read-out. */
+.nav__progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 100%;
+  transform-origin: left;
+  background: var(--brand-gradient);
+  opacity: 0.9;
+}
+
+@media (max-width: 780px) {
+  .nav__links {
+    display: none;
+  }
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+
+.store-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: clamp(28px, 4vh, 44px);
+}
+
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px 12px 20px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  transition:
+    transform 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out);
+  will-change: transform;
+}
+
+.store-btn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(34, 197, 94, 0.45);
+  box-shadow: var(--shadow-lift), var(--shadow-glow);
+}
+
+.store-btn--primary {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: var(--on-primary);
+}
+
+.store-btn--primary .store-btn__top {
+  color: rgba(6, 43, 18, 0.7);
+}
+
+.store-btn--muted {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.store-btn--muted:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+
+.store-btn__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.store-btn__top {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.store-btn__bottom {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ── Glass cards ───────────────────────────────────────────────────────── */
+
+.card {
+  padding: clamp(18px, 2.2vw, 26px);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--border-soft);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-lift);
+}
+
+.card__label {
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.card__value {
+  font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 6px;
+  line-height: 1.15;
+}
+
+.card__detail {
+  margin-top: 10px;
+  font-size: var(--fs-small);
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.card-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: clamp(28px, 4vh, 40px);
+}
+
+/* ── Badges & chips ────────────────────────────────────────────────────── */
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: clamp(24px, 3.5vh, 36px);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: rgba(17, 26, 46, 0.55);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+}
+
+/* ── Bullet list ───────────────────────────────────────────────────────── */
+
+.bullets {
+  display: grid;
+  gap: 12px;
+  margin-top: var(--stack);
+}
+
+.bullets li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: var(--fs-small);
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.bullets svg {
+  margin-top: 3px;
+  color: var(--primary);
+}

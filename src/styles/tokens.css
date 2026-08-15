@@ -1,0 +1,79 @@
+/*
+ * Design tokens, lifted from the app's own theme file
+ * (`src/theme/index.ts`) so the site and the product cannot drift apart.
+ * The only additions are two deeper grounds — the page needs more contrast
+ * behind a WebGL canvas than a phone screen does.
+ */
+
+:root {
+  /* Ground */
+  --bg: #070b14;
+  --bg-1: #0b1220;
+  --surface: #111a2e;
+  --card: #16213a;
+  --card-pressed: #1c2947;
+  --border: #233252;
+  --border-soft: rgba(255, 255, 255, 0.08);
+
+  /* Type */
+  --text: #f2f6ff;
+  --text-dim: #8fa3c8;
+  --text-faint: #5d7099;
+
+  /* Brand */
+  --primary: #22c55e;
+  --primary-dark: #15803d;
+  --sky: #0ea5e9;
+  --accent: #38bdf8;
+  --on-primary: #062b12;
+
+  /* Data */
+  --protein: #38bdf8;
+  --carbs: #fbbf24;
+  --fat: #f472b6;
+  --water: #38bdf8;
+  --steps: #a78bfa;
+  --warning: #fbbf24;
+
+  --brand-gradient: linear-gradient(135deg, var(--primary) 0%, var(--sky) 100%);
+  --brand-gradient-soft: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.16) 0%,
+    rgba(14, 165, 233, 0.16) 100%
+  );
+
+  /* Surfaces that float above the canvas */
+  --glass: linear-gradient(160deg, rgba(24, 37, 67, 0.72) 0%, rgba(11, 18, 32, 0.66) 100%);
+  --glass-strong: linear-gradient(160deg, rgba(28, 41, 71, 0.9) 0%, rgba(13, 21, 38, 0.88) 100%);
+  --blur: saturate(140%) blur(18px);
+
+  /* Radii, matching the app's `radius` scale */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-2xl: 36px;
+  --r-full: 999px;
+
+  /* Rhythm */
+  --gutter: clamp(20px, 5vw, 72px);
+  --stack: clamp(18px, 2.2vw, 28px);
+  --page: 1280px;
+
+  /* Type scale */
+  --fs-display: clamp(2.75rem, 8.2vw, 6.5rem);
+  --fs-h2: clamp(2rem, 4.6vw, 3.5rem);
+  --fs-h3: clamp(1.25rem, 2vw, 1.6rem);
+  --fs-lede: clamp(1.05rem, 1.45vw, 1.3rem);
+  --fs-body: clamp(0.95rem, 1.1vw, 1.05rem);
+  --fs-small: 0.85rem;
+  --fs-eyebrow: 0.78rem;
+
+  --shadow-lift: 0 24px 60px -24px rgba(4, 7, 14, 0.9);
+  --shadow-glow: 0 0 60px -12px rgba(34, 197, 94, 0.45);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  color-scheme: dark;
+}

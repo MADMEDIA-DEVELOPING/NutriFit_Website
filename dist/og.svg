@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="NutriFit — Trace. Scan. Chat. Grow.">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22C55E" />
+      <stop offset="1" stop-color="#0EA5E9" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#22C55E" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#22C55E" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0B1220" />
+  <circle cx="960" cy="315" r="420" fill="url(#glow)" />
+  <circle cx="140" cy="132" r="56" fill="url(#brand)" />
+  <path d="M119 189V75h26l37 59V75h26v114h-26l-37-59v59z" fill="#FFFFFF" />
+  <text
+    x="84"
+    y="330"
+    fill="#F2F6FF"
+    font-family="Inter, Segoe UI, sans-serif"
+    font-size="86"
+    font-weight="800"
+  >
+    Trace. Scan. Chat. Grow.
+  </text>
+  <text
+    x="84"
+    y="400"
+    fill="#8FA3C8"
+    font-family="Inter, Segoe UI, sans-serif"
+    font-size="34"
+    font-weight="500"
+  >
+    Your full-stack nutrition &amp; fitness diary.
+  </text>
+  <text
+    x="84"
+    y="452"
+    fill="#8FA3C8"
+    font-family="Inter, Segoe UI, sans-serif"
+    font-size="34"
+    font-weight="500"
+  >
+    Starts completely local. Scales to AI coaching when you're ready.
+  </text>
+  <rect x="84" y="516" width="248" height="62" rx="31" fill="url(#brand)" />
+  <text
+    x="208"
+    y="556"
+    fill="#062B12"
+    font-family="Inter, Segoe UI, sans-serif"
+    font-size="26"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    Get it on Google Play
+  </text>
+</svg>
