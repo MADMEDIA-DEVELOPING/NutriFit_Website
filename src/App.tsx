@@ -10,6 +10,7 @@ import { Explore } from '@/sections/Explore';
 import { Social } from '@/sections/Social';
 import { Coach } from '@/sections/Coach';
 import { Pricing } from '@/sections/Pricing';
+import { Faq } from '@/sections/Faq';
 import { Footer } from '@/sections/Footer';
 
 /**
@@ -28,6 +29,10 @@ const Scene = lazy(() => import('@/scene/Scene').then((m) => ({ default: m.Scene
  * text on a dark ground — which is what the page is actually for.
  */
 function detectWebGL(): boolean {
+  // The prerender pass has no DOM. Reporting "no WebGL" there is the right
+  // answer anyway: the static HTML is the text of the page, and the scene is
+  // something only a real browser goes on to build.
+  if (typeof document === 'undefined') return false;
   try {
     const canvas = document.createElement('canvas');
     return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
@@ -38,7 +43,11 @@ function detectWebGL(): boolean {
 
 export default function App() {
   const webgl = useMemo(detectWebGL, []);
-  const [ready, setReady] = useState(!webgl);
+  // Held false during prerender so the static HTML carries the loader in its
+  // covering state. The markup underneath it is the whole page — which is the
+  // point — but a reader should still meet the cover, not a flash of the page
+  // arriving twice as React takes over.
+  const [ready, setReady] = useState(() => typeof document !== 'undefined' && !webgl);
 
   useEffect(() => initScrollEngine(), []);
 
@@ -81,6 +90,7 @@ export default function App() {
         <Social />
         <Coach />
         <Pricing />
+        <Faq />
       </main>
 
       <Footer />

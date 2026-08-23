@@ -49,7 +49,10 @@ export function Footer() {
         <div className="footer__bottom">
           <span>{FOOTER.credits}</span>
           <span>
-            © {new Date().getFullYear()} {PRODUCT.developer}
+            © {new Date().getFullYear()} {PRODUCT.developer} ·{' '}
+            <a href={PRODUCT.privacyUrl} target="_blank" rel="noreferrer noopener">
+              Privacy Policy
+            </a>
           </span>
         </div>
       </div>

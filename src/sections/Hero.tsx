@@ -1,10 +1,12 @@
 import { m, useReducedMotion } from 'framer-motion';
 import { HERO, PRODUCT } from '@/lib/content';
+import { PRERENDER } from '@/lib/env';
 import { Logo } from '@/components/Logo';
 import { StoreButtons } from '@/components/StoreButtons';
 
 export function Hero() {
   const reduced = useReducedMotion();
+  const still = reduced || PRERENDER;
 
   return (
     <section id="top" data-stage="hero" className="section hero">
@@ -13,7 +15,7 @@ export function Hero() {
 
         <m.div
           className="hero__brand"
-          initial={reduced ? false : { opacity: 0, y: -12 }}
+          initial={still ? false : { opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -30,7 +32,7 @@ export function Hero() {
             <m.span
               key={word}
               className="hero__word"
-              initial={reduced ? false : { opacity: 0, y: 44, rotateX: -55 }}
+              initial={still ? false : { opacity: 0, y: 44, rotateX: -55 }}
               animate={{ opacity: 1, y: 0, rotateX: 0 }}
               transition={{
                 duration: 0.9,
@@ -45,7 +47,7 @@ export function Hero() {
 
         <m.p
           className="hero__sub"
-          initial={reduced ? false : { opacity: 0, y: 20 }}
+          initial={still ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -56,7 +58,7 @@ export function Hero() {
 
         <m.ul
           className="badges"
-          initial={reduced ? false : { opacity: 0 }}
+          initial={still ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.9 }}
         >

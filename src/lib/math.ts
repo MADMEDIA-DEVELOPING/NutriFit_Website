@@ -21,6 +21,16 @@ export const easeInOut = (t: number): number =>
 
 export const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
+/**
+ * Slower in and out than `easeInOut`, with a longer coast through the middle.
+ *
+ * This is the curve for travel the reader did not ask for frame by frame — an
+ * anchor jump, a section-to-section flight — where the start and the stop are
+ * what get noticed and the middle should simply pass.
+ */
+export const easeInOutCubic = (t: number): number =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
 export const easeOutBack = (t: number): number => {
   const c1 = 1.70158;
   const c3 = c1 + 1;

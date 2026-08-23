@@ -33,6 +33,7 @@ export const NAV_LINKS = [
   { href: '#social', label: 'Social' },
   { href: '#coach', label: 'AI Coach' },
   { href: '#pricing', label: 'Pricing' },
+  { href: '#faq', label: 'FAQ' },
 ] as const;
 
 export interface Fact {
@@ -287,6 +288,24 @@ export const FOOTER = {
         { label: 'Social', href: '#social' },
         { label: 'AI Coach', href: '#coach' },
         { label: 'Pricing', href: '#pricing' },
+        { label: 'FAQ', href: '#faq' },
+      ],
+    },
+    {
+      title: 'Resources',
+      links: [
+        { label: 'NutriFit on Google Play', href: PRODUCT.playUrl, external: true },
+        { label: 'Data sources', href: '#sources' },
+        {
+          label: 'Open Food Facts',
+          href: 'https://world.openfoodfacts.org/',
+          external: true,
+        },
+        {
+          label: 'USDA FoodData Central',
+          href: 'https://fdc.nal.usda.gov/',
+          external: true,
+        },
       ],
     },
     {
@@ -310,4 +329,172 @@ export const FOOTER = {
     },
   ],
   credits: `Built by ${PRODUCT.developer} · ${PRODUCT.package}`,
+} as const;
+
+/* ── Machine-facing identity ────────────────────────────────────────────── */
+
+/**
+ * Everything that has to name this site to a machine — the canonical URL, Open
+ * Graph, JSON-LD, the sitemap, the web manifest — reads from here rather than
+ * hard-coding a host. Moving to a custom domain is one edit and a rebuild.
+ */
+export const SITE = {
+  origin: 'https://nutrifit-73de0.web.app',
+  /** Named as the publisher to crawlers; distinct from the product name. */
+  publisher: PRODUCT.developer,
+  language: 'en',
+  locale: 'en_US',
+  /** The app ships Romanian too, and the legal pages exist in both. */
+  altLanguage: 'ro',
+  altLocale: 'ro_RO',
+  /** 1200x630 raster, generated from `public/og.svg` by `npm run assets`. */
+  ogImage: '/og.png',
+  founded: '2025',
+  /**
+   * Profiles that are provably the same entity, emitted as `sameAs`.
+   *
+   * This is what ties the site, the Play listing and the company accounts into
+   * one thing a search engine can reason about, so every URL here has to be
+   * genuinely ours — a wrong one dilutes the whole cluster. Add the real social
+   * profiles as they go live; an empty slot beats a guess.
+   */
+  profiles: [PRODUCT.playUrl] as string[],
+} as const;
+
+/* ── Questions people actually type ─────────────────────────────────────── */
+
+export interface QA {
+  q: string;
+  a: string;
+}
+
+/**
+ * The FAQ is on the page for two audiences at once.
+ *
+ * A reader gets short answers they would otherwise have to infer from six
+ * scrolling sections. A search engine — and, increasingly, an answer engine
+ * paraphrasing the page rather than linking to it — gets the same facts in the
+ * question form people actually type. Every answer here is checkable against
+ * the sections above; nothing is invented to catch a keyword.
+ */
+export const FAQ_CONTENT = {
+  eyebrow: '07 — Questions',
+  title: 'Straight answers',
+  lede: 'What people ask before they install, answered without the marketing voice.',
+  items: [
+    {
+      q: 'Is NutriFit free?',
+      a: 'Yes. The Free tier is the whole diary — hybrid food search, barcode scanning across all three databases, meals, water, steps, workouts, recipes and the Food Composer — at no cost and with no account. Paid tiers add the AI Coach, live location sharing, longer history and ad removal.',
+    },
+    {
+      q: 'Do I need an account to use NutriFit?',
+      a: 'No. NutriFit starts completely local: your phone is the source of truth and nothing has to reach a server for the diary to work. Signing in is optional, and exists so your profile, goals and custom foods come back when you move to a new device.',
+    },
+    {
+      q: 'Does the barcode scanner work offline?',
+      a: 'Search does, and scanning mostly does. Open Food Facts is mirrored into a local SQLite/FTS5 index inside the app, so food search stays instant with the radio off. Products missing from that mirror need a connection so the online lookups can answer.',
+    },
+    {
+      q: 'Which food databases does NutriFit use?',
+      a: 'Three, tried in order. Open Food Facts first, for roughly 3.5 million products and no API key. USDA FoodData Central second, for reference-grade nutrition the crowd-sourced set is missing. UPCitemdb last, which resolves the product name and pre-fills the entry form so you only copy the numbers off the label.',
+    },
+    {
+      q: 'How does photo food recognition work in NutriFit?',
+      a: 'A photo is downscaled to 768 px and sent to Google Gemini as a single multimodal request — about 260 image tokens in, a structured meal out, two to six seconds round trip. It returns the dish, the portion, the macros and the ingredients it recognised, and every value stays editable before it reaches your diary.',
+    },
+    {
+      q: 'How are calorie and macro targets calculated?',
+      a: 'With the Mifflin-St Jeor equation. Your BMR and TDEE come from height, weight, age, sex and activity level, then split into a macro target matching your goal — cut, maintain or gain. The in-app Calorie Calculator runs the same numbers by hand.',
+    },
+    {
+      q: 'Does NutriFit count steps without Google Fit or Health Connect?',
+      a: 'Yes. It reads the Android hardware step counter directly, which keeps counting with the app closed and credits the difference when you reopen it. One permission, no Google Fit, no Health Connect, no login.',
+    },
+    {
+      q: 'Is location sharing in NutriFit private?',
+      a: 'It is off by default and enforced server-side. Mutual visibility takes an accepted friendship, sharing switched on, and your global toggle enabled — all three checked in Firestore security rules rather than in the app, so revoking one stops the data at the database. Sharing runs in a foreground service with a permanent notification, and a transparency log shows who looked at your position and when.',
+    },
+    {
+      q: 'What does the AI Coach know about me?',
+      a: 'Your profile and your last seven days of real entries — macros, water, steps and workouts. That grounding is the point: it is the difference between generic advice and a number pulled from your own week.',
+    },
+    {
+      q: 'Can I try the AI Coach before subscribing?',
+      a: 'Yes. One rewarded video buys 24 hours of Plus-level Coach access. Plus itself includes 70 messages per rolling seven days; Pro and N.O.S.S. LifeStyle are unlimited.',
+    },
+    {
+      q: 'Is NutriFit available in Romanian?',
+      a: 'Yes — Romanian first, English throughout. Both languages are complete in the app, and the privacy policy is published in both.',
+    },
+    {
+      q: 'Is there an iPhone version of NutriFit?',
+      a: 'Not yet. The iOS target is configured but has not been submitted, so Android on Google Play is the only place to install it today. The App Store button says "coming soon" rather than pointing at a listing that does not exist.',
+    },
+    {
+      q: 'How do I delete my NutriFit account and data?',
+      a: 'Through the account deletion page linked in the footer, or from inside the app. Because the diary is local first, deleting the account removes the cloud mirror; the copy on your phone stays yours to keep or clear.',
+    },
+  ] satisfies QA[],
+} as const;
+
+/* ── Outbound citations ─────────────────────────────────────────────────── */
+
+export interface Source {
+  name: string;
+  href: string;
+  role: string;
+}
+
+/**
+ * The projects NutriFit is actually built on, credited and linked.
+ *
+ * These are citations, not a link farm: every one is a dependency the app
+ * genuinely uses. Naming them is the honest thing to do, and it is also the
+ * clearest signal a search engine has about the subject of this page.
+ */
+export const SOURCES = {
+  title: 'Built on, and credited',
+  lede: 'NutriFit stands on open data and open source. These are the projects behind the numbers.',
+  items: [
+    {
+      name: 'Open Food Facts',
+      href: 'https://world.openfoodfacts.org/',
+      role: 'The open product database behind barcode lookups and the offline search mirror.',
+    },
+    {
+      name: 'USDA FoodData Central',
+      href: 'https://fdc.nal.usda.gov/',
+      role: 'Reference nutrition data for anything the crowd-sourced set does not carry.',
+    },
+    {
+      name: 'UPCitemdb',
+      href: 'https://www.upcitemdb.com/',
+      role: 'Last-resort barcode resolution, used to pre-fill the manual entry form.',
+    },
+    {
+      name: 'Google Gemini',
+      href: 'https://deepmind.google/technologies/gemini/',
+      role: 'The multimodal model behind photo meal analysis and the AI Coach.',
+    },
+    {
+      name: 'MapLibre',
+      href: 'https://maplibre.org/',
+      role: 'The open-source map engine the friends map renders with.',
+    },
+    {
+      name: 'OpenFreeMap',
+      href: 'https://openfreemap.org/',
+      role: 'Free vector tiles, so the map needs no key and no Play Services.',
+    },
+    {
+      name: 'Expo',
+      href: 'https://expo.dev/',
+      role: 'The React Native toolchain the Android app is built and shipped with.',
+    },
+    {
+      name: 'Mifflin-St Jeor equation',
+      href: 'https://pubmed.ncbi.nlm.nih.gov/2305711/',
+      role: 'The 1990 paper the calorie and macro targets are derived from.',
+    },
+  ] satisfies Source[],
 } as const;

@@ -15,10 +15,16 @@ export function Nav() {
   const [active, setActive] = useState<string>('');
 
   const { scrollYProgress } = useScroll();
-  const rail = useSpring(scrollYProgress, { stiffness: 140, damping: 28, mass: 0.4 });
+  // Slightly under-damped and light, so the rail keeps travelling for a moment
+  // after the page stops — the same coast the scroll itself now has.
+  const rail = useSpring(scrollYProgress, { stiffness: 110, damping: 26, mass: 0.35 });
 
   useEffect(() => {
-    const onScroll = () => setStuck(window.scrollY > 24);
+    // Two thresholds, not one. A single 24px line means the bar re-dresses
+    // itself over and over while the page rests anywhere near it, and the
+    // transition is long enough that the flicker is very visible.
+    const onScroll = () =>
+      setStuck((current) => (current ? window.scrollY > 12 : window.scrollY > 44));
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);

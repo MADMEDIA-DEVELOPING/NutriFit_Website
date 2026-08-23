@@ -45,7 +45,13 @@
   /* Surfaces that float above the canvas */
   --glass: linear-gradient(160deg, rgba(24, 37, 67, 0.72) 0%, rgba(11, 18, 32, 0.66) 100%);
   --glass-strong: linear-gradient(160deg, rgba(28, 41, 71, 0.9) 0%, rgba(13, 21, 38, 0.88) 100%);
-  --blur: saturate(140%) blur(18px);
+  /*
+   * 14px, not 18: a backdrop filter over a canvas that is redrawing every frame
+   * has to be recomputed every frame too, and its cost scales with the radius.
+   * Four pixels of blur are invisible next to a scrolling page that stays at
+   * frame rate, and there are a dozen of these surfaces on screen at once.
+   */
+  --blur: saturate(135%) blur(14px);
 
   /* Radii, matching the app's `radius` scale */
   --r-sm: 10px;
@@ -72,8 +78,39 @@
   --shadow-lift: 0 24px 60px -24px rgba(4, 7, 14, 0.9);
   --shadow-glow: 0 0 60px -12px rgba(34, 197, 94, 0.45);
 
+  /*
+   * Motion.
+   *
+   * Three curves and four durations, and every transition on the page is built
+   * from them. The point is not tidiness: when a card lifts on one curve and
+   * its border brightens on another, the eye reads two events instead of one,
+   * and that is what "not quite smooth" usually turns out to be.
+   *
+   * `--ease-fluid` is the house curve — the same exponential ease-out the
+   * entrance animations use, so hovering something feels like it belongs to
+   * the same physics as the page arriving.
+   */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Overshoots by a hair and comes back — for things that should feel sprung. */
+  --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
+
+  --dur-1: 200ms; /* colour, opacity — should feel instant */
+  --dur-2: 380ms; /* the default: movement under the cursor */
+  --dur-3: 620ms; /* larger surfaces, shadows, the nav bar dressing */
+  --dur-4: 900ms; /* things that cross the whole viewport */
 
   color-scheme: dark;
+}
+
+/*
+ * Blur is the most expensive thing on this page and phones are where it costs
+ * the most, so they get a cheaper one. Keyed on the pointer as well as width:
+ * a tablet is wide and still has a mobile GPU behind it.
+ */
+@media (max-width: 900px), (pointer: coarse) {
+  :root {
+    --blur: saturate(125%) blur(9px);
+  }
 }

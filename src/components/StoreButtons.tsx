@@ -1,4 +1,5 @@
 import { m } from 'framer-motion';
+import { PRERENDER } from '@/lib/env';
 import { PRODUCT } from '@/lib/content';
 import { AppleIcon, PlayIcon } from './icons';
 
@@ -18,7 +19,7 @@ export function StoreButtons({ delay = 0 }: { delay?: number }) {
         href={PRODUCT.playUrl}
         target="_blank"
         rel="noreferrer noopener"
-        initial={{ opacity: 0, y: 18 }}
+        initial={PRERENDER ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
       >
@@ -33,7 +34,7 @@ export function StoreButtons({ delay = 0 }: { delay?: number }) {
         className="store-btn store-btn--muted"
         aria-disabled="true"
         title="The iOS build is configured but not yet published."
-        initial={{ opacity: 0, y: 18 }}
+        initial={PRERENDER ? false : { opacity: 0, y: 18 }}
         animate={{ opacity: 0.62, y: 0 }}
         transition={{ duration: 0.7, delay: delay + 0.1, ease: [0.22, 1, 0.36, 1] }}
       >

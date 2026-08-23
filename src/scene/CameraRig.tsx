@@ -79,20 +79,30 @@ export function CameraRig() {
     }
 
     // Mouse parallax, strongest in the hero where the brief asks the camera to
-    // walk around the plate, and fading out as the journey gets busier.
+    // walk around the plate, and fading out as the journey gets busier. The
+    // engine has already taken the jitter out of the pointer, so this second
+    // filter is only here to give the parallax its own slower weight.
     const parallax = lerp(1, 0.35, clamp(scrollState.t / 3, 0, 1));
-    pointer.current.x = damp(pointer.current.x, scrollState.pointer.x, 2.4, delta);
-    pointer.current.y = damp(pointer.current.y, scrollState.pointer.y, 2.4, delta);
+    pointer.current.x = damp(pointer.current.x, scrollState.pointer.x, 3, delta);
+    pointer.current.y = damp(pointer.current.y, scrollState.pointer.y, 3, delta);
     targetPos.x += pointer.current.x * 0.55 * parallax;
     targetPos.y += -pointer.current.y * 0.3 * parallax;
 
     // Scrolling fast leans the camera into the direction of travel. It is a few
     // centimetres of movement, and it is most of why the page feels physical.
-    targetPos.y += clamp(-scrollState.velocity / 9000, -0.14, 0.14);
+    // The velocity it reads is smoothed and, with the wheel now gliding rather
+    // than stepping, decays over the coast instead of snapping back to zero.
+    targetPos.y += clamp(-scrollState.velocity / 8000, -0.16, 0.16);
 
     // On the very first frame, snap — damping from the default camera position
     // would otherwise show a swoop nobody asked for.
-    const lambda = started.current ? 3.4 : 1000;
+    //
+    // 4.6, where this used to be 3.4: the rig is now the last of three filters
+    // rather than the only one, and lag is the one thing that does not add up
+    // to "smooth". The glide and the journey damping have already removed the
+    // steps, so the camera can afford to follow more closely — which is what
+    // keeps the scene feeling attached to the wheel instead of swimming after it.
+    const lambda = started.current ? 4.6 : 1000;
     started.current = true;
 
     camera.position.set(

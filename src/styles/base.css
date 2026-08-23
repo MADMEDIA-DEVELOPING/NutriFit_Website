@@ -4,9 +4,25 @@
   box-sizing: border-box;
 }
 
+/*
+ * `scroll-behavior: smooth` is the no-JS fallback for in-page links only.
+ *
+ * Once the scroll engine is running it sets `scroll-behavior: auto` inline and
+ * eases anchor jumps itself — it has to, because this property also applies to
+ * programmatic scrolls, and the engine writes the scroll position every frame.
+ */
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+}
+
+/* No rubber-banding at either end of the glide — but only where the glide
+   exists. On a touch screen this same property would also take pull-to-refresh
+   away, and the page has no business doing that. */
+@media (pointer: fine) {
+  html {
+    overscroll-behavior-y: none;
+  }
 }
 
 body {
@@ -81,6 +97,7 @@ button {
   background: var(--border);
   border-radius: var(--r-full);
   border: 3px solid var(--bg);
+  transition: background var(--dur-1) var(--ease-fluid);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-faint);
@@ -163,7 +180,7 @@ button {
   color: var(--on-primary);
   font-weight: 700;
   transform: translateY(-160%);
-  transition: transform 0.2s var(--ease-out);
+  transition: transform var(--dur-2) var(--ease-spring);
 }
 
 .skip-link:focus-visible {

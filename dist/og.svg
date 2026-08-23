@@ -11,8 +11,10 @@
   </defs>
   <rect width="1200" height="630" fill="#0B1220" />
   <circle cx="960" cy="315" r="420" fill="url(#glow)" />
-  <circle cx="140" cy="132" r="56" fill="url(#brand)" />
-  <path d="M119 189V75h26l37 59V75h26v114h-26l-37-59v59z" fill="#FFFFFF" />
+  <g transform="translate(140 132) scale(0.3077) translate(-256 -256)">
+    <circle cx="256" cy="256" r="182" fill="url(#brand)" />
+    <path d="M186 348V164h42l60 96v-96h42v184h-42l-60-96v96z" fill="#FFFFFF" />
+  </g>
   <text
     x="84"
     y="330"
@@ -43,10 +45,10 @@
   >
     Starts completely local. Scales to AI coaching when you're ready.
   </text>
-  <rect x="84" y="516" width="248" height="62" rx="31" fill="url(#brand)" />
+  <rect x="84" y="512" width="366" height="66" rx="33" fill="url(#brand)" />
   <text
-    x="208"
-    y="556"
+    x="267"
+    y="555"
     fill="#062B12"
     font-family="Inter, Segoe UI, sans-serif"
     font-size="26"

@@ -4,14 +4,25 @@
  * Everything the 3D scene needs to know about the page lives in one mutable
  * module-level object that `useFrame` reads directly. Nothing here goes through
  * React state on purpose: a scroll handler that calls `setState` re-renders the
- * tree dozens of times a second and the whole scene stutters. GSAP writes into
- * this object, the render loop reads it, and React never re-renders while you
- * scroll.
+ * tree dozens of times a second and the whole scene stutters. The engine writes
+ * into this object once a frame, the render loop reads it, and React never
+ * re-renders while you scroll.
+ *
+ * Fluidity is built in two layers, and both are needed:
+ *
+ * 1. `smoothScroll` glides the actual scroll position toward where the wheel
+ *    asked it to go, so the input stops being a staircase.
+ * 2. Every number below is then damped toward its raw reading on a rAF clock
+ *    rather than assigned on a scroll event. Scroll events are bursty — they
+ *    arrive several to a frame and then not at all — so a value assigned in one
+ *    is a value that jumps and then holds. Damping on the frame clock means the
+ *    scene keeps easing between readings and never receives a step.
  */
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { clamp, clamp01 } from './math';
+import { clamp, clamp01, damp } from './math';
+import { createSmoothScroll, type SmoothScroll } from './smoothScroll';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -81,6 +92,36 @@ export const scrollState: ScrollState = {
   viewport: { width: 1, height: 1 },
 };
 
+/**
+ * The same readings, undamped — what the document says at this instant.
+ *
+ * `scrollState` chases these. Keeping the two apart is what lets the smoothing
+ * be a property of the engine rather than something every act has to remember
+ * to do for itself.
+ */
+const raw = {
+  t: 0,
+  stage: STAGES.map(() => 0),
+  read: STAGES.map(() => 0),
+  pointer: { x: 0, y: 0 },
+};
+
+/*
+ * Damping rates, in e-folds per second.
+ *
+ * The journey is the fastest of the three because it is already fed a smoothed
+ * scroll position: this pass exists to round off the corners where a section
+ * hands over, not to add lag. Velocity is slower — it is a derivative, so it is
+ * the noisiest thing here and the camera lean it drives should breathe rather
+ * than twitch.
+ */
+const JOURNEY_LAMBDA = 15;
+const VELOCITY_LAMBDA = 7;
+const POINTER_LAMBDA = 11;
+
+/** A frame gap longer than this means the tab was hidden — resume, don't animate. */
+const STALL = 0.25;
+
 interface Measured {
   top: number;
   height: number;
@@ -95,8 +136,11 @@ const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
  */
 export function initScrollEngine(): () => void {
   let measured: Measured[] = [];
-  let lastY = window.scrollY;
+  let smooth: SmoothScroll | null = createSmoothScroll();
+  let rafId = 0;
   let lastTime = performance.now();
+  let lastY = window.scrollY;
+  let primed = false;
 
   const sections = (): HTMLElement[] =>
     STAGES.map((name) =>
@@ -107,34 +151,30 @@ export function initScrollEngine(): () => void {
     const els = sections();
     measured = els.map((el) => ({ top: el.offsetTop, height: el.offsetHeight }));
     scrollState.viewport = { width: window.innerWidth, height: window.innerHeight };
-    update();
+    smooth?.refresh();
+    sample(window.scrollY);
+    // The page just changed shape under the scene; arriving at the new reading
+    // gradually would look like a scroll nobody performed.
+    settle();
   };
 
-  const update = () => {
+  /** Reads the document into `raw`. No smoothing, no side effects. */
+  const sample = (y: number) => {
     if (measured.length === 0) return;
-
-    const y = window.scrollY;
     const vh = window.innerHeight;
-    const now = performance.now();
-    const dt = Math.max(now - lastTime, 1) / 1000;
-
-    scrollState.velocity = (y - lastY) / dt;
-    scrollState.y = y;
-    lastY = y;
-    lastTime = now;
 
     for (let i = 0; i < measured.length; i++) {
       const { top, height } = measured[i];
 
       // Whole-pass arc: 0 the moment the section's top enters from below, 1
       // once its bottom has left through the top.
-      scrollState.stage[i] = clamp01((y + vh - top) / (height + vh));
+      raw.stage[i] = clamp01((y + vh - top) / (height + vh));
 
       // Reading window: 0 when the section's top hits the top of the viewport,
       // 1 when its bottom hits the bottom. Sections no taller than the viewport
       // have no such window, so they get a nominal one rather than a step.
       const readSpan = Math.max(height - vh, vh * 0.4);
-      scrollState.read[i] = clamp01((y - top) / readSpan);
+      raw.read[i] = clamp01((y - top) / readSpan);
     }
 
     // Journey parameter. Hold at `i` while section i owns the screen, then
@@ -159,18 +199,67 @@ export function initScrollEngine(): () => void {
         break;
       }
     }
-    scrollState.t = clamp(t, 0, measured.length - 1);
+    raw.t = clamp(t, 0, measured.length - 1);
+  };
+
+  /** Drops the smoothing and adopts the raw reading wholesale. */
+  const settle = () => {
+    scrollState.t = raw.t;
+    for (let i = 0; i < raw.stage.length; i++) {
+      scrollState.stage[i] = raw.stage[i];
+      scrollState.read[i] = raw.read[i];
+    }
+    scrollState.y = window.scrollY;
+    scrollState.velocity = 0;
+    lastY = scrollState.y;
+    primed = true;
+  };
+
+  const frame = (now: number) => {
+    rafId = requestAnimationFrame(frame);
+
+    const elapsed = (now - lastTime) / 1000;
+    lastTime = now;
+
+    // Advance the glide first: everything below should read the position this
+    // frame will actually paint at, not the one the last frame left behind.
+    const dt = clamp(elapsed, 1 / 240, 0.1);
+    smooth?.tick(dt);
+
+    const y = window.scrollY;
+    sample(y);
+
+    if (!primed || elapsed > STALL) {
+      settle();
+      return;
+    }
+
+    scrollState.y = y;
+    scrollState.velocity = damp(scrollState.velocity, (y - lastY) / dt, VELOCITY_LAMBDA, dt);
+    lastY = y;
+
+    scrollState.t = damp(scrollState.t, raw.t, JOURNEY_LAMBDA, dt);
+    for (let i = 0; i < raw.stage.length; i++) {
+      scrollState.stage[i] = damp(scrollState.stage[i], raw.stage[i], JOURNEY_LAMBDA, dt);
+      scrollState.read[i] = damp(scrollState.read[i], raw.read[i], JOURNEY_LAMBDA, dt);
+    }
+
+    // Smoothed here as well as in the camera rig: the rig has its own, slower
+    // filter for the parallax, but half a dozen acts read the pointer directly
+    // and would otherwise each get the raw, jittery signal.
+    scrollState.pointer.x = damp(scrollState.pointer.x, raw.pointer.x, POINTER_LAMBDA, dt);
+    scrollState.pointer.y = damp(scrollState.pointer.y, raw.pointer.y, POINTER_LAMBDA, dt);
   };
 
   const onPointerMove = (event: PointerEvent) => {
     const { innerWidth, innerHeight } = window;
-    scrollState.pointer.x = (event.clientX / innerWidth) * 2 - 1;
-    scrollState.pointer.y = (event.clientY / innerHeight) * 2 - 1;
+    raw.pointer.x = (event.clientX / innerWidth) * 2 - 1;
+    raw.pointer.y = (event.clientY / innerHeight) * 2 - 1;
   };
 
   const onPointerLeave = () => {
-    scrollState.pointer.x = 0;
-    scrollState.pointer.y = 0;
+    raw.pointer.x = 0;
+    raw.pointer.y = 0;
   };
 
   const narrowMedia = window.matchMedia(NARROW_QUERY);
@@ -181,16 +270,29 @@ export function initScrollEngine(): () => void {
   };
   syncMedia();
 
-  // One trigger over the whole document rather than one per section: the work
-  // per scroll event is a handful of arithmetic ops on cached offsets, and
-  // ScrollTrigger already batches those into a single rAF pass.
+  // ScrollTrigger no longer drives the values — the frame loop does — but it
+  // remains the most reliable thing on the page for noticing that the document
+  // changed height, which is the one event that invalidates every offset below.
   const trigger = ScrollTrigger.create({
     trigger: document.documentElement,
     start: 0,
     end: 'max',
-    onUpdate: update,
     onRefresh: measure,
   });
+
+  // Belt and braces: the page can also reflow without a resize or a refresh —
+  // a late font, a paragraph that rewraps. Every offset here is cached, and a
+  // stale cache means the scene runs a section behind the copy. Coalesced into
+  // a frame because a resize observer fires per element per change.
+  let queued = 0;
+  const observer = new ResizeObserver(() => {
+    if (queued) return;
+    queued = requestAnimationFrame(() => {
+      queued = 0;
+      measure();
+    });
+  });
+  observer.observe(document.body);
 
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('pointerleave', onPointerLeave, { passive: true });
@@ -201,8 +303,14 @@ export function initScrollEngine(): () => void {
   void document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
   measure();
+  rafId = requestAnimationFrame(frame);
 
   return () => {
+    cancelAnimationFrame(rafId);
+    if (queued) cancelAnimationFrame(queued);
+    observer.disconnect();
+    smooth?.destroy();
+    smooth = null;
     trigger.kill();
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerleave', onPointerLeave);
