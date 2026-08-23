@@ -6,7 +6,7 @@
   "description": "Promotional single-page site for NutriFit (Android/iOS food diary & fitness app).",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && npm run build:ssr && node scripts/prerender.mjs",
+    "build": "npx tsc --noEmit && vite build && npm run build:ssr && node scripts/prerender.mjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr",
     "assets": "node scripts/gen-images.mjs",
     "preview": "vite preview",
