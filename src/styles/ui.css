@@ -69,8 +69,19 @@
   transition: transform var(--dur-3) var(--ease-spring);
 }
 
-.logo:hover .logo__mark {
-  transform: rotate(-8deg) scale(1.06);
+/*
+ * Every `:hover` rule on this page is inside a `(hover: hover)` query.
+ *
+ * A touch browser resolves `:hover` on tap and then *keeps* it resolved until
+ * you tap something else, so an unguarded hover state is a card that lifts when
+ * you touch it and stays lifted — permanently, while you scroll past it. That
+ * one behaviour is most of what makes a desktop-first site feel broken on a
+ * phone, and it is invisible to anyone testing in a resized desktop window.
+ */
+@media (hover: hover) {
+  .logo:hover .logo__mark {
+    transform: rotate(-8deg) scale(1.06);
+  }
 }
 
 .logo__word {
@@ -88,6 +99,9 @@
   justify-content: space-between;
   gap: 24px;
   padding: 16px var(--gutter);
+  /* `viewport-fit=cover` lets the scene reach the top of a notched screen; it
+     also puts this bar under the status bar unless the inset is added back. */
+  padding-top: max(16px, var(--safe-t));
   transition:
     background var(--dur-3) var(--ease-fluid),
     backdrop-filter var(--dur-3) var(--ease-fluid),
@@ -136,14 +150,22 @@
   transition: transform var(--dur-2) var(--ease-fluid);
 }
 
-.nav__link:hover,
 .nav__link[aria-current='true'] {
   color: var(--text);
 }
 
-.nav__link[aria-current='true']::after,
-.nav__link:hover::after {
+.nav__link[aria-current='true']::after {
   transform: scaleX(1);
+}
+
+@media (hover: hover) {
+  .nav__link:hover {
+    color: var(--text);
+  }
+
+  .nav__link:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 /* The scroll-progress rail under the nav — the journey's read-out. */
@@ -158,9 +180,216 @@
   opacity: 0.9;
 }
 
+/* ── Hamburger ─────────────────────────────────────────────────────────── */
+
+.nav__toggle {
+  display: none;
+  position: relative;
+  flex: none;
+  place-items: center;
+  /* The tap token, not the icon size. The bars inside are 19px wide; the
+     button around them is 44 so that the target matches the intent. */
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-soft);
+  background: rgba(17, 26, 46, 0.55);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  transition:
+    transform var(--dur-1) var(--ease-fluid),
+    background var(--dur-2) var(--ease-fluid),
+    border-color var(--dur-2) var(--ease-fluid);
+}
+
+.nav__toggle:active {
+  transform: scale(0.92);
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.nav__bars {
+  position: relative;
+  display: block;
+  width: 19px;
+  height: 13px;
+}
+
+.nav__bars span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+  transition:
+    transform var(--dur-2) var(--ease-spring),
+    width var(--dur-2) var(--ease-fluid),
+    opacity 140ms linear;
+}
+
+.nav__bars span:nth-child(1) {
+  top: 0;
+}
+
+/* The short middle bar is the whole reason this reads as a considered mark
+   rather than three identical lines — and it is also what makes the collapse
+   to a cross legible, because the bar that vanishes is the odd one out. */
+.nav__bars span:nth-child(2) {
+  top: 5.5px;
+  width: 68%;
+}
+
+.nav__bars span:nth-child(3) {
+  top: 11px;
+}
+
+.nav__toggle--open .nav__bars span:nth-child(1) {
+  transform: translateY(5.5px) rotate(45deg);
+}
+
+.nav__toggle--open .nav__bars span:nth-child(2) {
+  width: 0;
+  opacity: 0;
+}
+
+.nav__toggle--open .nav__bars span:nth-child(3) {
+  transform: translateY(-5.5px) rotate(-45deg);
+}
+
+/* ── The menu sheet ────────────────────────────────────────────────────── */
+
+.nav__sheet {
+  position: fixed;
+  inset: 0;
+  /*
+   * Between the sticky install bar (58) and the nav (60).
+   *
+   * Over the bar, because that bar is still "past the hero, before the footer"
+   * while the menu is open and would otherwise float on top of the sheet.
+   * Under the nav, because the toggle is also the close button and has to stay
+   * on top of the thing it opened.
+   */
+  z-index: 59;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--nav-h) + var(--safe-t) + 20px) var(--gutter)
+    calc(28px + var(--safe-b));
+  /*
+   * The sheet is the scroll container, and `contain` is what keeps a swipe
+   * that runs out of sheet from scrolling the page behind it. The usual
+   * `body { overflow: hidden }` lock is not available here — collapsing the
+   * document height makes the scroll engine re-measure and clamp its glide
+   * target to zero, which throws the reader to the top of the page on close.
+   */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(
+    165deg,
+    rgba(11, 18, 32, 0.93) 0%,
+    rgba(7, 11, 20, 0.97) 100%
+  );
+  backdrop-filter: saturate(140%) blur(22px);
+  -webkit-backdrop-filter: saturate(140%) blur(22px);
+}
+
+.nav__sheetLinks {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav__sheetLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  /* Comfortably past the 44px floor: these are the primary controls on the
+     page while the sheet is open, and there are only seven of them. */
+  min-height: 58px;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  transition:
+    color var(--dur-1) var(--ease-fluid),
+    transform var(--dur-1) var(--ease-fluid);
+}
+
+.nav__sheetLink:active {
+  transform: translateX(5px);
+  color: var(--primary);
+}
+
+.nav__sheetLink[aria-current='true'] {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav__sheetChevron {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  transition: transform var(--dur-2) var(--ease-spring);
+}
+
+.nav__sheetLink[aria-current='true'] .nav__sheetChevron {
+  color: var(--primary);
+  transform: translateX(3px);
+}
+
+.nav__sheetCta {
+  justify-content: center;
+  /* Pushed to the bottom of the sheet by the auto margin — the thumb is
+     already down there, and the links are read from the top down. */
+  margin-top: auto;
+  padding-block: 16px;
+  font-size: 1.02rem;
+}
+
+.nav__sheetCta .store-btn__text {
+  text-align: center;
+}
+
+.nav__sheetNote {
+  margin-top: 16px;
+  text-align: center;
+  font-size: var(--fs-small);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 @media (max-width: 780px) {
-  .nav__links {
+  .nav__links,
+  /* The bar has room for a logo and one control. The download button moves to
+     the sheet and to the sticky bar, where it is reachable rather than tucked
+     into the corner furthest from a thumb. */
+  .nav__cta {
     display: none;
+  }
+
+  .nav__toggle {
+    display: grid;
+  }
+
+  .nav {
+    gap: 12px;
+    /* Fixed height, not the desktop's condense-on-scroll. A bar that changes
+       height as you scroll shifts the page under the thumb that is moving it. */
+    min-height: calc(var(--nav-h) + var(--safe-t));
+    padding-block: 8px;
+    padding-top: max(8px, var(--safe-t));
+  }
+
+  .nav--stuck {
+    padding-block: 8px;
+    padding-top: max(8px, var(--safe-t));
   }
 }
 
@@ -190,10 +419,12 @@
   will-change: transform;
 }
 
-.store-btn:hover {
-  transform: translateY(-3px);
-  border-color: rgba(34, 197, 94, 0.45);
-  box-shadow: var(--shadow-lift), var(--shadow-glow);
+@media (hover: hover) {
+  .store-btn:hover {
+    transform: translateY(-3px);
+    border-color: rgba(34, 197, 94, 0.45);
+    box-shadow: var(--shadow-lift), var(--shadow-glow);
+  }
 }
 
 /* Press takes it below its resting height rather than back to it: a button
@@ -207,6 +438,17 @@
   background: var(--brand-gradient);
   border-color: transparent;
   color: var(--on-primary);
+  /*
+   * A coloured drop shadow and a one-pixel inner highlight.
+   *
+   * The gradient alone reads as a flat coloured rectangle. The inset white line
+   * along the top edge is the thing that makes it look lit from above and
+   * slightly raised — it is the same trick the platform buttons on both stores
+   * use, and it costs nothing because it is painted, not composited.
+   */
+  box-shadow:
+    0 10px 28px -12px rgba(34, 197, 94, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .store-btn--primary .store-btn__top {
@@ -223,6 +465,22 @@
   transform: none;
   box-shadow: none;
   border-color: var(--border);
+}
+
+/*
+ * Touch feedback.
+ *
+ * With hover gone, `:active` is the only acknowledgement a tap gets, so it has
+ * to do the whole job on its own — and it has to be immediate. The 90ms above
+ * is already short; what a phone additionally needs is for the press to be
+ * visible at all, which a 1px nudge is not on a surface being held in a moving
+ * hand. The scale is what reads.
+ */
+@media (hover: none) {
+  .store-btn:active {
+    transform: scale(0.96);
+    filter: brightness(1.08);
+  }
 }
 
 .store-btn__text {
@@ -261,9 +519,11 @@
     box-shadow var(--dur-2) var(--ease-fluid);
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(56, 189, 248, 0.28);
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(56, 189, 248, 0.28);
+  }
 }
 
 .card__label {
@@ -322,10 +582,12 @@
     color var(--dur-1) var(--ease-fluid);
 }
 
-.badge:hover {
-  transform: translateY(-2px);
-  border-color: rgba(34, 197, 94, 0.35);
-  color: var(--text);
+@media (hover: hover) {
+  .badge:hover {
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: var(--text);
+  }
 }
 
 .badge__dot {
@@ -379,4 +641,137 @@
 .bullets svg {
   margin-top: 3px;
   color: var(--primary);
+}
+
+/* ── Sticky install bar (phones) ───────────────────────────────────────── */
+
+/*
+ * The mobile call to action. See `src/components/InstallBar.tsx` for when it is
+ * on screen; this is only what it looks like. Hidden outright above the menu
+ * breakpoint, where the nav's own Download button never leaves the viewport.
+ */
+.install-bar {
+  display: none;
+  position: fixed;
+  z-index: 58;
+  left: max(12px, var(--gutter));
+  right: max(12px, var(--gutter));
+  bottom: calc(12px + var(--safe-b));
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(160deg, rgba(24, 37, 67, 0.92) 0%, rgba(11, 18, 32, 0.92) 100%);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.95);
+}
+
+.install-bar__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.install-bar__name {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+.install-bar__meta {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  /* One line, always. The bar is a fixed height and this is the only part of
+     it whose text could grow. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.install-bar__cta {
+  flex: none;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  min-width: 76px;
+  min-height: var(--tap);
+  padding-inline: 20px;
+  border-radius: var(--r-full);
+  background: var(--brand-gradient);
+  color: var(--on-primary);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 8px 20px -10px rgba(34, 197, 94, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: transform var(--dur-1) var(--ease-fluid);
+}
+
+.install-bar__cta:active {
+  transform: scale(0.94);
+}
+
+@media (max-width: 780px) {
+  .install-bar {
+    display: flex;
+  }
+}
+
+/* ── Controls on a phone ───────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /*
+   * Full width, stacked.
+   *
+   * Two pill buttons side by side wrap to two lines below about 380px anyway,
+   * and they wrap badly — the second one ends up half the width of the first.
+   * Stacking them deliberately is both tidier and a bigger target, and it puts
+   * the live button under the thumb rather than beside it.
+   */
+  .store-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .store-btn {
+    justify-content: center;
+    min-height: 52px;
+    padding: 12px 20px;
+  }
+
+  .store-btn__text {
+    text-align: left;
+  }
+
+  /* The eyebrow ("Get it on") is what makes these read as store buttons rather
+     than as generic links, so it stays — but it does not need to be shouted. */
+  .store-btn__top {
+    font-size: 0.64rem;
+  }
+
+  .badge {
+    /* 7px of padding gives a 30px-tall target. These are not links, but they
+       sit in a row a thumb scrolls past and a hairline chip looks like a
+       rendering accident on a small screen. */
+    padding: 9px 14px;
+  }
+
+  .bullets li,
+  .card__detail,
+  .lede {
+    /* `56ch` is a desktop measure. On a phone the column is already narrower
+       than that, so the constraint does nothing but the line height still
+       matters — a touch tighter reads better at this size. */
+    line-height: 1.58;
+  }
+
+  .note {
+    padding-left: 14px;
+  }
 }

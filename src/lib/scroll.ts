@@ -251,7 +251,18 @@ export function initScrollEngine(): () => void {
     scrollState.pointer.y = damp(scrollState.pointer.y, raw.pointer.y, POINTER_LAMBDA, dt);
   };
 
+  /**
+   * Mouse parallax only.
+   *
+   * `pointermove` also fires for touch, and on a phone that is not a hovering
+   * cursor — it is the drag that is scrolling the page. Feeding it in meant
+   * every swipe slammed the parallax from wherever the last touch ended to
+   * wherever this one began, so the camera lurched sideways on contact and
+   * again on release. There is no hovering pointer on a touch screen, so the
+   * honest reading there is the centre, which is what it stays at.
+   */
   const onPointerMove = (event: PointerEvent) => {
+    if (event.pointerType !== 'mouse') return;
     const { innerWidth, innerHeight } = window;
     raw.pointer.x = (event.clientX / innerWidth) * 2 - 1;
     raw.pointer.y = (event.clientY / innerHeight) * 2 - 1;

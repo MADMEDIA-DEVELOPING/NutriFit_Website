@@ -14,6 +14,16 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  /*
+   * `clip`, not `hidden`.
+   *
+   * `overflow-x: hidden` silently makes the element a scroll container, which
+   * on the root breaks `position: sticky` inside it and gives iOS a second
+   * scrollable axis to rubber-band. `clip` cuts the overflow without any of
+   * that. The `hidden` below it is the fallback for engines that predate it.
+   */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* No rubber-banding at either end of the glide — but only where the glide
@@ -36,6 +46,24 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  overflow-x: clip;
+}
+
+/*
+ * Touch defaults.
+ *
+ * The grey flash Android paints over a tapped link is the single loudest
+ * "this is a web page" signal on the whole site, and every control here already
+ * has a considered `:active` state of its own. `touch-action: manipulation`
+ * drops the 300ms wait for a possible double-tap-to-zoom, which is the lag
+ * people read as the button being slow rather than the browser being careful.
+ */
+a,
+button,
+[role='button'],
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 h1,
@@ -134,7 +162,11 @@ button {
   padding: clamp(96px, 12vh, 160px) var(--gutter);
   /* Anchor links land the section top at the viewport top, where the fixed nav
      is sitting. Without this the headline arrives underneath it. */
-  scroll-margin-top: 78px;
+  scroll-margin-top: calc(var(--nav-h) + 10px);
+  /* Notched phones in landscape put the rounded corner over the first and last
+     characters of every line; the gutter has to clear it. */
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
 }
 
 .section__inner {
@@ -205,6 +237,57 @@ button {
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border-soft);
+  }
+}
+
+/* ── Phones ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /*
+   * `clamp(96px, …)` was a floor written for a laptop. On a phone the section
+   * is already `min-height: 100svh` and its content is centred inside that, so
+   * the padding only ever bites when the copy is taller than the screen — and
+   * then it is 192px of dead space in a viewport that has none to give.
+   *
+   * The top value clears the fixed bar; the extra on the bottom is for the
+   * sticky download bar, which sits over the last lines of every section.
+   */
+  .section {
+    min-height: auto;
+    padding-block: calc(var(--nav-h) + 26px) 68px;
+  }
+
+  /* The hero is the one section that should still fill the screen — it is the
+     frame the plate is composed inside, not a block of copy. Two classes,
+     because `.hero` is also set in sections.css, which loads after this. */
+  .section.hero {
+    min-height: 100svh;
+  }
+
+  /*
+   * 20px of card padding inside an 18px gutter leaves 284px of text on a 360px
+   * screen, and `.cascade` then takes another 70 off the front of every row.
+   * Trimming both is the difference between a comfortable measure and copy
+   * that hyphenates.
+   */
+  .split__copy {
+    padding: 18px 16px;
+    border-radius: var(--r-xl);
+  }
+
+}
+
+/*
+ * Landscape phones.
+ *
+ * `100svh` is ~360px here and the section padding alone would eat most of it,
+ * so the hero stops trying to fill the frame and simply sizes to its content.
+ */
+@media (max-height: 520px) and (orientation: landscape) {
+  .section,
+  .section.hero {
+    min-height: auto;
+    padding-block: calc(var(--nav-h) + 18px) 40px;
   }
 }
 

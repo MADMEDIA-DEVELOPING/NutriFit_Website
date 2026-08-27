@@ -258,10 +258,12 @@
     background var(--dur-2) var(--ease-fluid);
 }
 
-.cascade__row:hover .cascade__step {
-  transform: scale(1.08);
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.12);
+@media (hover: hover) {
+  .cascade__row:hover .cascade__step {
+    transform: scale(1.08);
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.12);
+  }
 }
 
 /* The connector between the three lookups — the "fallback" made visible. */
@@ -309,7 +311,7 @@
 .explore__grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   margin-top: clamp(32px, 5vh, 48px);
 }
 
@@ -350,17 +352,32 @@
     transform var(--dur-3) var(--ease-fluid);
 }
 
-.tile:hover {
-  transform: translateY(-6px);
-  border-color: color-mix(in srgb, var(--tile-accent) 45%, transparent);
-  box-shadow: var(--shadow-lift);
+@media (hover: hover) {
+  .tile:hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--tile-accent) 45%, transparent);
+    box-shadow: var(--shadow-lift);
+  }
+
+  /* The accent bloom grows as well as brightens, so the card looks lit from
+     inside rather than switched on. */
+  .tile:hover::after {
+    opacity: 0.26;
+    transform: scale(1.18);
+  }
 }
 
-/* The accent bloom grows as well as brightens, so the card looks lit from
-   inside rather than switched on. */
-.tile:hover::after {
-  opacity: 0.26;
-  transform: scale(1.18);
+/* The same bloom, on press. A card in a swipe rail has to answer a tap or the
+   rail feels dead — but it must not move, or the answer looks like a drag. */
+@media (hover: none) {
+  .tile:active::after {
+    opacity: 0.26;
+    transform: scale(1.18);
+  }
+
+  .tile:active {
+    border-color: color-mix(in srgb, var(--tile-accent) 45%, transparent);
+  }
 }
 
 .tile__caption {
@@ -401,9 +418,11 @@
     transform var(--dur-2) var(--ease-fluid);
 }
 
-.social__item:hover {
-  border-left-color: var(--primary);
-  transform: translateX(5px);
+@media (hover: hover) {
+  .social__item:hover {
+    border-left-color: var(--primary);
+    transform: translateX(5px);
+  }
 }
 
 .social__item h3 {
@@ -483,7 +502,7 @@
   gap: 12px;
   /* 170px, not 200: the coach column is the narrowest on the page, and at 200
      the three tiers wrap to 2 + 1 and stop reading as a ladder. */
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
   margin-top: clamp(32px, 5vh, 48px);
 }
 
@@ -530,7 +549,7 @@
 .pricing__grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   margin-top: clamp(36px, 5vh, 56px);
   align-items: start;
 }
@@ -553,15 +572,17 @@
     box-shadow var(--dur-2) var(--ease-fluid);
 }
 
-.tier:hover {
-  transform: translateY(-6px);
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: var(--shadow-lift);
-}
+@media (hover: hover) {
+  .tier:hover {
+    transform: translateY(-6px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: var(--shadow-lift);
+  }
 
-.tier--featured:hover {
-  border-color: rgba(34, 197, 94, 0.75);
-  box-shadow: var(--shadow-lift), var(--shadow-glow);
+  .tier--featured:hover {
+    border-color: rgba(34, 197, 94, 0.75);
+    box-shadow: var(--shadow-lift), var(--shadow-glow);
+  }
 }
 
 .tier--featured {
@@ -678,7 +699,7 @@
   z-index: 1;
   background: var(--bg);
   border-top: 1px solid var(--border-soft);
-  padding: clamp(56px, 9vh, 96px) var(--gutter) 32px;
+  padding: clamp(56px, 9vh, 96px) var(--gutter) calc(32px + var(--safe-b));
   min-height: auto;
 }
 
@@ -690,7 +711,9 @@
 .footer__top {
   display: grid;
   gap: clamp(32px, 5vw, 64px);
-  grid-template-columns: minmax(260px, 1.3fr) repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns:
+    minmax(min(260px, 100%), 1.3fr)
+    repeat(auto-fit, minmax(min(150px, 100%), 1fr));
 }
 
 .footer__blurb {
@@ -723,9 +746,11 @@
     transform var(--dur-2) var(--ease-fluid);
 }
 
-.footer__links a:hover {
-  color: var(--primary);
-  transform: translateX(4px);
+@media (hover: hover) {
+  .footer__links a:hover {
+    color: var(--primary);
+    transform: translateX(4px);
+  }
 }
 
 .footer__bottom {
@@ -768,7 +793,7 @@
 .faq__grid {
   display: grid;
   gap: clamp(18px, 2.4vw, 28px);
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   margin-top: clamp(36px, 5vh, 56px);
 }
 
@@ -784,9 +809,11 @@
     transform var(--dur-2) var(--ease-fluid);
 }
 
-.faq__item:hover {
-  transform: translateY(-3px);
-  border-color: rgba(34, 197, 94, 0.28);
+@media (hover: hover) {
+  .faq__item:hover {
+    transform: translateY(-3px);
+    border-color: rgba(34, 197, 94, 0.28);
+  }
 }
 
 .faq__q {
@@ -825,7 +852,7 @@
 .sources__grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   margin-top: clamp(24px, 3.5vh, 36px);
 }
 
@@ -843,11 +870,18 @@
     transform var(--dur-2) var(--ease-fluid);
 }
 
-.sources__link:hover,
 .sources__link:focus-visible {
   transform: translateY(-3px);
   border-color: rgba(56, 189, 248, 0.3);
   background: rgba(255, 255, 255, 0.05);
+}
+
+@media (hover: hover) {
+  .sources__link:hover {
+    transform: translateY(-3px);
+    border-color: rgba(56, 189, 248, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .sources__name {
@@ -894,6 +928,231 @@
       rgba(7, 11, 20, 0.55) 60%,
       rgba(7, 11, 20, 0) 100%
     );
+  }
+}
+
+/* ── Phones ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /*
+   * Swipe rails.
+   *
+   * Three, six or five cards side by side is a desktop composition. Stacked on
+   * a phone the same cards become a column a thumb has to scroll through twice
+   * to get past — the pricing ladder alone is five tall cards, which is most of
+   * a minute of scrolling to read a table.
+   *
+   * A snap rail turns that vertical distance into a horizontal gesture the
+   * platform already teaches. Three details make it feel native rather than
+   * like a div that happens to scroll: `mandatory` snapping so a card is always
+   * squared up, cards sized under 100% so the next one *peeks* — which is the
+   * only affordance that reliably says "there is more this way" without a
+   * caption — and the scrollbar hidden, because the peek has already said it.
+   */
+  .explore__grid,
+  .pricing__grid,
+  .coach__quota {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /*
+     * `overflow-x: auto` forces `overflow-y` to compute to `auto` as well, so
+     * anything sticking out of the top of a card — the "Most popular" flag — is
+     * clipped or spawns a vertical scrollbar inside the rail. The padding is
+     * the room that flag needs.
+     */
+    padding-block: 14px 4px;
+  }
+
+  .explore__grid::-webkit-scrollbar,
+  .pricing__grid::-webkit-scrollbar,
+  .coach__quota::-webkit-scrollbar {
+    display: none;
+  }
+
+  .explore__grid > *,
+  .pricing__grid > *,
+  .coach__quota > * {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+  }
+
+  /*
+   * Full bleed.
+   *
+   * A rail that stops at the page gutter looks like a mistake — the card at the
+   * edge is cut by whitespace instead of by the screen. Pulling the rail out to
+   * the edges and putting the gutter back as padding means the first card still
+   * lines up with the copy above it, and the last one runs off the screen the
+   * way it should. `scroll-padding` is what keeps a snapped card off the very
+   * edge once it has been swiped to.
+   */
+  .explore__grid {
+    /* Sits inside `.split__copy`, whose phone padding is 16px. */
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .explore__grid > * {
+    /* 78% leaves about a fifth of the next tile showing. */
+    width: 78%;
+    max-width: 280px;
+  }
+
+  .pricing__grid {
+    /* Sits directly in `.section__inner`, so the gutter is the page's. */
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
+  }
+
+  .pricing__grid > * {
+    width: 82%;
+    max-width: 300px;
+  }
+
+  .coach__quota {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  /* The quota tiles hold two short lines each, so two-and-a-bit on screen
+     keeps them reading as a ladder rather than as three separate cards. */
+  .coach__quota > * {
+    width: 46%;
+    min-width: 132px;
+  }
+
+  /* `.pricing__grid` sets `align-items: start`, which is right for a desktop
+     grid of unequal cards and wrong for a rail — a short card would leave a
+     ragged gap beneath itself. The rail rule above resets it to `stretch`. */
+  .tier {
+    padding: 22px 18px;
+  }
+
+  /*
+   * The facts and the FAQ stay stacked on purpose.
+   *
+   * Both are long-form: a fact card carries a full paragraph and an answer
+   * carries three lines. Putting prose in a horizontal rail means reading a
+   * paragraph in a 250px window and swiping to find out there was more, which
+   * is worse than scrolling. Rails are for cards you scan, not cards you read.
+   */
+  .trace__cards {
+    gap: 12px;
+  }
+
+  .faq__grid {
+    gap: 12px;
+  }
+
+  /* ── Everything else that was sized for a laptop ─────────────────────── */
+
+  .coach__inner {
+    padding: 18px 16px;
+  }
+
+  /* 52px of step plus 18px of gap took a quarter of the text column. */
+  .cascade__row {
+    grid-template-columns: 40px 1fr;
+    gap: 14px;
+    padding: 15px 0;
+  }
+
+  .cascade__step {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-sm);
+  }
+
+  .cascade__row:not(:last-child) .cascade__step::after {
+    left: 19px;
+    top: 56px;
+    bottom: -15px;
+  }
+
+  /*
+   * The headline is four one-word sentences. On a phone they should break two
+   * and two rather than wherever the measure happens to run out, and the
+   * desktop's -0.045em tracking is too tight once the type is half the size.
+   */
+  .hero__headline {
+    gap: 0 0.26em;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .hero__brand {
+    gap: 10px 12px;
+  }
+
+  .hero__brandTag {
+    font-size: 0.72rem;
+    padding: 5px 12px;
+  }
+
+  /* Bottom-left of the hero is also where a thumb rests. The hint is
+     decoration, so it gives up the corner rather than competing for it. */
+  .scroll-hint {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(18px + var(--safe-b));
+    font-size: 0.68rem;
+  }
+
+  .nav--stuck ~ .page .scroll-hint {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px);
+  }
+
+  .scroll-hint__rail {
+    height: 32px;
+  }
+
+  .loader__ring {
+    width: 68px;
+    height: 68px;
+    font-size: 2rem;
+  }
+
+  /*
+   * Footer links are the densest run of tap targets on the page — six or seven
+   * in a column, each one line of 13px text. At the desktop's 10px gap they
+   * are 28px apart, which is the classic "I hit Terms instead of Privacy".
+   */
+  .footer__links {
+    gap: 0;
+  }
+
+  .footer__links a {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+
+  .footer__top {
+    gap: 28px;
+  }
+
+  .footer__bottom {
+    gap: 10px;
+    margin-top: 32px;
+  }
+
+  .sources {
+    margin-top: 48px;
+    padding-top: 28px;
+  }
+
+  .sources__link {
+    min-height: var(--tap);
   }
 }
 

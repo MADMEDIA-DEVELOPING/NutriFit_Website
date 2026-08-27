@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { PerformanceMonitor, Preload } from '@react-three/drei';
 import { ACESFilmicToneMapping } from 'three';
 import { disposeTextures } from '@/lib/textures';
+import { COARSE, MAX_DPR } from '@/lib/device';
 import { CameraRig } from './CameraRig';
 import { Lighting } from './Lighting';
 import { DustField } from './parts/DustField';
@@ -29,7 +30,12 @@ interface SceneProps {
 export function Scene({ onReady }: SceneProps) {
   // Resolution, not framerate, is what gives when the GPU cannot keep up: a
   // slightly softer scene at 60fps reads far better than a sharp one at 30.
-  const [dpr, setDpr] = useState(1.75);
+  //
+  // The ceiling is per-device (see `@/lib/device`): 1.75 on a desktop, 1.4 on a
+  // phone, 1 on a phone that looks weak. This used to be a flat 1.75, which on
+  // a 3x phone screen meant the renderer was filling more than five times the
+  // pixels of the display it was heading for.
+  const [dpr, setDpr] = useState(MAX_DPR);
 
   const handleCreated = useCallback(() => {
     // One frame's grace so the first paint is a composed scene, not a flash of
@@ -46,9 +52,16 @@ export function Scene({ onReady }: SceneProps) {
       <Canvas
         dpr={dpr}
         gl={{
-          antialias: true,
+          // MSAA is close to free on a desktop GPU and one of the most
+          // expensive things you can ask a mobile tile renderer for. The edges
+          // in this scene are soft, lit and mostly in motion, so on a phone the
+          // aliasing it would have removed is not visible in the first place.
+          antialias: !COARSE,
           alpha: false,
-          powerPreference: 'high-performance',
+          // Asking a phone for the high-performance adapter is asking it to run
+          // the discrete-equivalent power profile for a decorative background;
+          // it is a reliable way to get thermally throttled two minutes in.
+          powerPreference: COARSE ? 'default' : 'high-performance',
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 1.05,
         }}
@@ -68,7 +81,10 @@ export function Scene({ onReady }: SceneProps) {
           flipflops={3}
           onDecline={() => setDpr(1)}
           onFallback={() => setDpr(1)}
-          onIncline={() => setDpr(1.75)}
+          // Back up to this device's ceiling, not to the desktop's. Recovering
+          // to a flat 1.75 would have undone the mobile cap the moment the
+          // monitor saw one good stretch of frames.
+          onIncline={() => setDpr(MAX_DPR)}
         />
 
         <CameraRig />

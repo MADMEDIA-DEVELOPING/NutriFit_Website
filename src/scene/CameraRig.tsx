@@ -61,9 +61,20 @@ export function CameraRig() {
 
     // Narrow viewports have no room for an off-centre act, so the framing
     // recentres and pulls back to fit the same objects into a taller frame.
+    //
+    // How far back is not one number: 900px and 360px are both "narrow" and the
+    // second is two and a half times tighter than the first. A flat pull-back
+    // sized for a tablet leaves a small phone with the acts still running off
+    // both sides, so it scales across the range instead — and the extra field
+    // of view goes with it, because widening the lens is what buys back the
+    // horizontal room that moving the camera alone cannot.
+    const tight = scrollState.narrow
+      ? clamp((900 - scrollState.viewport.width) / 540, 0, 1)
+      : 0;
+
     if (scrollState.narrow) {
       targetLook.x = 0;
-      targetPos.z += 1.5;
+      targetPos.z += 1.5 + tight * 1.15;
       targetPos.y += 0.15;
     }
 
@@ -71,8 +82,13 @@ export function CameraRig() {
       camera.position.copy(targetPos);
       currentLook.copy(targetLook);
       camera.lookAt(currentLook);
-      if (camera.fov !== lerp(from.fov, to.fov, blend)) {
-        camera.fov = lerp(from.fov, to.fov, blend);
+      // Same widening as the animated path below. Without it a phone that has
+      // asked for less motion gets the desktop framing and the acts sit half
+      // outside the frame — reduced motion is not reduced layout.
+      const stillFov =
+        lerp(from.fov, to.fov, blend) + (scrollState.narrow ? 6 + tight * 3 : 0);
+      if (camera.fov !== stillFov) {
+        camera.fov = stillFov;
         camera.updateProjectionMatrix();
       }
       return;
@@ -118,7 +134,7 @@ export function CameraRig() {
     );
     camera.lookAt(currentLook);
 
-    const nextFov = lerp(from.fov, to.fov, blend) + (scrollState.narrow ? 6 : 0);
+    const nextFov = lerp(from.fov, to.fov, blend) + (scrollState.narrow ? 6 + tight * 3 : 0);
     fov.current = damp(fov.current, nextFov, lambda, delta);
     if (Math.abs(camera.fov - fov.current) > 0.01) {
       camera.fov = fov.current;

@@ -3,6 +3,7 @@ import { LazyMotion, domAnimation } from 'framer-motion';
 import { initScrollEngine } from '@/lib/scroll';
 import { Nav } from '@/components/Nav';
 import { Loader } from '@/components/Loader';
+import { InstallBar } from '@/components/InstallBar';
 import { Hero } from '@/sections/Hero';
 import { Trace } from '@/sections/Trace';
 import { Scan } from '@/sections/Scan';
@@ -94,6 +95,11 @@ export default function App() {
       </main>
 
       <Footer />
+
+      {/* Phones only — see the component. It has to sit outside `.page` so it
+          is not caught by that stacking context, and after the footer so the
+          document order matches the visual one for a screen reader. */}
+      <InstallBar />
     </LazyMotion>
   );
 }

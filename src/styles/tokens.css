@@ -66,6 +66,27 @@
   --stack: clamp(18px, 2.2vw, 28px);
   --page: 1280px;
 
+  /*
+   * The height of the fixed bar, as a token rather than a number repeated in
+   * four places. Anchor scroll-margins, the mobile menu panel and the sticky
+   * download bar all have to agree with it, and they used to agree by accident.
+   */
+  --nav-h: 68px;
+
+  /*
+   * Notch and home-indicator insets, resolved once.
+   *
+   * `viewport-fit=cover` in the meta tag is what lets the scene reach the edges
+   * of a notched screen; it is also what puts the nav under the status bar and
+   * the bottom bar under the home indicator unless every fixed surface adds
+   * these back. Declared here so `env()` appears once instead of a dozen times.
+   */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  /* The smallest a control may be and still be comfortably tappable. */
+  --tap: 44px;
+
   /* Type scale */
   --fs-display: clamp(2.75rem, 8.2vw, 6.5rem);
   --fs-h2: clamp(2rem, 4.6vw, 3.5rem);
@@ -112,5 +133,35 @@
 @media (max-width: 900px), (pointer: coarse) {
   :root {
     --blur: saturate(125%) blur(9px);
+  }
+}
+
+/*
+ * The phone scale.
+ *
+ * The desktop curves above are all `clamp(floor, vw, ceiling)` with a floor
+ * chosen for a laptop — which means that below roughly 640px every one of them
+ * pins to its floor and stops responding at exactly the widths where the
+ * headline has the least room. This block re-floors them for a 360px screen and
+ * hands back to the desktop curve at 640px, where the two meet within a pixel
+ * or so, so there is no visible step as a window is dragged across the seam.
+ */
+@media (max-width: 640px) {
+  :root {
+    --nav-h: 60px;
+    --gutter: 18px;
+    --stack: 16px;
+
+    --fs-display: clamp(2.35rem, 9.6vw, 3.3rem);
+    --fs-h2: clamp(1.75rem, 6.2vw, 2rem);
+    --fs-h3: clamp(1.02rem, 3.6vw, 1.2rem);
+    --fs-lede: clamp(0.95rem, 3.5vw, 1.05rem);
+    --fs-body: clamp(0.92rem, 3.4vw, 0.95rem);
+    --fs-small: 0.84rem;
+    --fs-eyebrow: 0.72rem;
+
+    /* A 60px lift reads as a hover on a laptop and as a dropped card on a
+       phone, where the whole surface is only a few hundred pixels tall. */
+    --shadow-lift: 0 14px 34px -18px rgba(4, 7, 14, 0.9);
   }
 }
