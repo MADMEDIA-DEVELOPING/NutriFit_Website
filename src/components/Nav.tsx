@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m, useScroll, useSpring } from 'framer-motion';
 import { NAV_LINKS, PRODUCT } from '@/lib/content';
 import { Logo } from './Logo';
+import { SocialLinks } from './SocialLinks';
 
 /**
  * Fixed nav with a scroll-progress rail and an active-section indicator.
@@ -238,6 +239,10 @@ export function Nav() {
                 <span className="store-btn__bottom">Get it on Google Play</span>
               </span>
             </m.a>
+
+            <m.div variants={ITEM}>
+              <SocialLinks className="social-links--sheet" />
+            </m.div>
 
             <m.p variants={ITEM} className="nav__sheetNote">
               {PRODUCT.tagline}

@@ -1,6 +1,7 @@
 import { FOOTER, PRODUCT } from '@/lib/content';
 import { Logo } from '@/components/Logo';
 import { StoreButtons } from '@/components/StoreButtons';
+import { SocialLinks } from '@/components/SocialLinks';
 
 export function Footer() {
   return (
@@ -13,6 +14,7 @@ export function Footer() {
             <Logo size={38} />
             <p className="footer__blurb">{FOOTER.blurb}</p>
             <StoreButtons />
+            <SocialLinks />
           </div>
 
           {FOOTER.columns.map((column) => (

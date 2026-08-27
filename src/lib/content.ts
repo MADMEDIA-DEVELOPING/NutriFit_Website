@@ -338,6 +338,64 @@ export const FOOTER = {
  * Graph, JSON-LD, the sitemap, the web manifest — reads from here rather than
  * hard-coding a host. Moving to a custom domain is one edit and a rebuild.
  */
+export interface SocialProfile {
+  key: string;
+  /** Used as the accessible name — the icons are decorative on their own. */
+  label: string;
+  /**
+   * The profile URL, or an empty string while there is no profile.
+   *
+   * Empty is a supported state, not a placeholder to be filled in later and
+   * forgotten: `SOCIAL_PROFILES_LIVE` filters on it, so a platform with no URL
+   * simply has no button and contributes nothing to `sameAs`. That is the same
+   * rule the `profiles` note below states, enforced in code rather than trusted
+   * to whoever edits this next — a `#` href would ship a button that looks
+   * live, does nothing, and quietly tells a crawler the account exists.
+   */
+  url: string;
+  /** Brand colour, used for the hover/press glow. */
+  accent: string;
+}
+
+/**
+ * The company's social accounts, in the order they appear.
+ *
+ * Ordered by where the audience actually is for a fitness app rather than
+ * alphabetically — the first two carry the content, the last two are claims on
+ * the name.
+ */
+export const SOCIAL_PROFILES = [
+  {
+    key: 'instagram',
+    label: 'Instagram',
+    url: 'https://www.instagram.com/nutrifitofficialapp/',
+    accent: '#E1306C',
+  },
+  {
+    key: 'tiktok',
+    // `?lang=en` stripped: it pins the page to English for every visitor, and
+    // the app and this site both ship Romanian as well.
+    label: 'TikTok',
+    url: 'https://www.tiktok.com/@nutrifitapp',
+    accent: '#FE2C55',
+  },
+  {
+    key: 'facebook',
+    label: 'Facebook',
+    // `&sk=directory_personal_details` stripped: that parameter opens a
+    // sub-tab of the profile rather than the profile, and `sameAs` wants the
+    // canonical URL of the account, not a view of it.
+    url: 'https://www.facebook.com/profile.php?id=61593677680169',
+    accent: '#1877F2',
+  },
+  { key: 'x', label: 'X', url: 'https://x.com/NutriFitApp', accent: '#E7E9EA' },
+] satisfies SocialProfile[];
+
+/** The ones that exist. Everything that renders or is emitted reads this. */
+export const SOCIAL_PROFILES_LIVE: SocialProfile[] = SOCIAL_PROFILES.filter(
+  (profile) => profile.url.length > 0
+);
+
 export const SITE = {
   origin: 'https://nutrifit-73de0.web.app',
   /** Named as the publisher to crawlers; distinct from the product name. */
@@ -358,7 +416,7 @@ export const SITE = {
    * genuinely ours — a wrong one dilutes the whole cluster. Add the real social
    * profiles as they go live; an empty slot beats a guess.
    */
-  profiles: [PRODUCT.playUrl] as string[],
+  profiles: [PRODUCT.playUrl, ...SOCIAL_PROFILES_LIVE.map((p) => p.url)] as string[],
 } as const;
 
 /* ── Questions people actually type ─────────────────────────────────────── */

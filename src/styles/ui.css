@@ -643,6 +643,69 @@
   color: var(--primary);
 }
 
+/* ── Social links ──────────────────────────────────────────────────────── */
+
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: clamp(20px, 3vh, 28px);
+}
+
+/*
+ * A circle, at the tap minimum, that lights up in the platform's own colour.
+ *
+ * At rest all four are the same dim grey, which is what keeps the row from
+ * competing with the download button directly above it — the footer's job is
+ * still to get someone to the store. The brand colour only arrives on hover or
+ * press, where it identifies the mark being touched rather than decorating the
+ * whole row at once.
+ */
+.social-link {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(17, 26, 46, 0.55);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  color: var(--text-dim);
+  transition:
+    transform var(--dur-2) var(--ease-fluid),
+    color var(--dur-1) var(--ease-fluid),
+    border-color var(--dur-2) var(--ease-fluid),
+    background var(--dur-2) var(--ease-fluid),
+    box-shadow var(--dur-2) var(--ease-fluid);
+}
+
+@media (hover: hover) {
+  .social-link:hover {
+    transform: translateY(-3px);
+    color: var(--social-accent);
+    border-color: color-mix(in srgb, var(--social-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--social-accent) 12%, rgba(17, 26, 46, 0.55));
+    box-shadow: 0 10px 26px -12px var(--social-accent);
+  }
+}
+
+/* No lift on touch — see the note on `.tile:active`. A card that moves under a
+   finger reads as the start of a drag, so the press is colour only. */
+.social-link:active {
+  transform: scale(0.92);
+  color: var(--social-accent);
+  border-color: color-mix(in srgb, var(--social-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--social-accent) 16%, rgba(17, 26, 46, 0.55));
+}
+
+/* In the menu sheet the row is the last thing above the tagline, and it is
+   centred because everything else in the sheet's footer is. */
+.social-links--sheet {
+  justify-content: center;
+  margin-top: 18px;
+}
+
 /* ── Sticky install bar (phones) ───────────────────────────────────────── */
 
 /*
